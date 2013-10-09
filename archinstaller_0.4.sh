@@ -12,7 +12,7 @@
 ##################################################################
 #
 
-# MBR AND BIOS ONLY. NO UEFI SUPPORT.
+# BIOS ONLY. NO UEFI SUPPORT.
 
 ## -------------------
 ## CONFIGURATION
@@ -26,12 +26,17 @@ dest_disk=''
 # example:
 # dest_disk='/dev/sda'
 
-## !! GPT is currently broken
 # GUID Partition Table (gpt/mbr)
 # ( left empty,the script uses MBR if a drive is smaller than 1 TiB, GPT otherwise )
 partition_table=''
 # example:
 # partition_table='gpt'
+
+# bootloader (syslinux/grub)
+# ( currently you can not combine grub and gpt with this script )
+bootloader=''
+# example:
+# bootloader='syslinux'
 
 # swap (yes/no)
 swap=''
@@ -150,6 +155,7 @@ message 'Checking configuration..'
 
 [ -z "$confirm" ] && config_fail 'confirm'
 [ -z "$dest_disk" ] && config_fail 'dest_disk'
+[ -z "$bootloader" ] && config_fail 'bootloader'
 [ -z "$swap" ] && config_fail 'swap'
 if [ "$swap" = 'yes' ]; then
 	[ -z "$swap_size" ] && config_fail 'swap_size'
@@ -172,15 +178,15 @@ fi
 udevadm info --query=all --name=$dest_disk | grep DEVTYPE=disk || config_fail 'dest_disk'
 
 # check disk size
-#if [ -z "$partition_table" ]; then
-#	dest_disk_size=$(lsblk -dnbo size "$dest_disk")
-#	# check if disk is larger than 1099511627776 bytes ( 1TiB )
-#	if echo ""$dest_disk_size" > 1099511627776" | bc ; then
-#        	partition_table='gpt'
-#	else
-#        	partition_table='mbr'
-#	fi
-#fi
+if [ -z "$partition_table" ]; then
+	dest_disk_size=$(lsblk -dnbo size "$dest_disk")
+	# check if disk is larger than 1099511627776 bytes ( 1TiB )
+	if echo ""$dest_disk_size" > 1099511627776" | bc ; then
+        	partition_table='gpt'
+	else
+        	partition_table='mbr'
+	fi
+fi
 
 message 'Configuration appears to be complete.'
 
@@ -265,34 +271,38 @@ if [ "$partition_table" = 'mbr' ]; then
 else
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
-		echo -e "n\n \
-                          "$swap_part_number"\n \
-                           \n \
-                           +"$swap_size"G\n \
-                          8200\n \
-                         w" | gdisk "$dest_disk"
-	fi
+	#DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
+	echo -e "n\n \
+"$swap_part_number"\n \
+\n \
++"$swap_size"G\n \
+8200\n \
+w\n \
+Y" | gdisk "$dest_disk"
 	
 	# wait a moment
 	sleep 1
+	fi
 	
 	## root partition
 	echo -e "n\n \
-                  "$root_part_number"\n \
-                   \n \
-                   +"$root_size"G\n \
-                  \n \
-                 w" | gdisk "$dest_disk"
+"$root_part_number"\n \
+\n \
++"$root_size"G\n \
+\n \
+w\n \
+Y" | gdisk "$dest_disk"
 	
 	# wait a moment
 	sleep 1
 
 	## home partition
 	echo -e "n\n \
-                  "$home_part_number"\n \
-		   \n \
-                  \n \
-                 w" | gdisk "$dest_disk"
+"$home_part_number"\n \
+\n \
+\n \
+w\n \
+Y" | gdisk "$dest_disk"
 fi
 
 # encrypt home partition
@@ -391,16 +401,43 @@ echo "$hostname" > /mnt/etc/hostname
 arch-chroot /mnt mkinitcpio -p linux
 
 # bootloader
-## install grub & os prober packages
-message 'Installing bootloader..'
-pacstrap /mnt grub os-prober
+if [[ "$partition_table" = 'gpt' || "$bootloader" = 'syslinux' ]]; then
+	## install syslinux & gptfdisk packages
+	message 'Installing bootloader..'
+	pacstrap /mnt syslinux gptfdisk
 
-## write grub to MBR
-message 'Writing bootloader to MBR..'
-arch-chroot /mnt /usr/bin/grub-install $dest_disk
-## configure grub
-message 'Configuring bootloader..'
-arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+	## write syslinux to disk
+	message 'Writing bootloader to disk..'
+	syslinux-install_update -i -a -m -c /mnt
+
+	## configure syslinux
+	message 'Configuring bootloader..'
+	echo "PROMPT 1
+TIMEOUT 50
+DEFAULT arch
+
+LABEL arch
+        LINUX ../vmlinuz-linux
+        APPEND root="$dest_disk""$root_part_number" rw
+        INITRD ../initramfs-linux.img
+
+LABEL archfallback
+        LINUX ../vmlinuz-linux
+        APPEND root="$dest_disk""$root_part_number" rw
+        INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
+else
+	## install grub & os prober packages
+	message 'Installing bootloader..'
+	pacstrap /mnt grub os-prober
+
+	## write grub to MBR
+	message 'Writing bootloader to MBR..'
+	arch-chroot /mnt /usr/bin/grub-install $dest_disk
+	
+	## configure grub
+	message 'Configuring bootloader..'
+	arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+fi
 
 # root password
 if [ "$set_root_password" = 'yes' ]; then
