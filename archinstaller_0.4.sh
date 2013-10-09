@@ -2,20 +2,21 @@
 #
 ##################################################################
 #title		: archinstaller.sh
-#description	: Automated installation script for arch linux
+#description	: automated installation script for arch linux
 #author		: Dennis Anfossi & teateawhy
 #contact	: https://bbs.archlinux.org/profile.php?id=57887
 #date		: 10-09
-#version	: 0.3
+#version	: 0.4
 #license	: GPLv2
-#usage		: ./archinstaller.sh
+#usage		: edit archinstaller.sh and ./archinstaller.sh
 ##################################################################
 #
 
 # MBR AND BIOS ONLY. NO UEFI SUPPORT.
 
-## -------------
+## -------------------
 ## CONFIGURATION
+## EDIT BEFORE RUNNING
 
 # confirm before running (yes/no)
 confirm='yes'
@@ -28,7 +29,7 @@ dest_disk=''
 ## !! GPT is currently broken
 # GUID Partition Table (gpt/mbr)
 # ( left empty,the script uses MBR if a drive is smaller than 1 TiB, GPT otherwise )
-#partition_table=''
+partition_table=''
 # example:
 # partition_table='gpt'
 
@@ -64,7 +65,7 @@ mirrorlist=''
 base_devel=''
 
 # additional packages
-# ( set to 'none' to skip )
+# ( leave empty to skip )
 packages=''
 # example:
 # packages='zsh grml-zsh-config vim'
@@ -158,7 +159,6 @@ fi
 [ -z "$encrypt_home" ] && config_fail 'encrypt_home'
 [ -z "$mirrorlist" ] && config_fail 'mirrorlist'
 [ -z "$base_devel" ] && config_fail 'base_devel'
-[ -z "$packages" ] && config_fail 'packages'
 [ -z "$locale_gen" ] && config_fail 'locale_gen'
 [ -z "$locale_conf" ] && config_fail 'locale_conf'
 [ -z "$keymap" ] && config_fail 'keymap'
@@ -214,13 +214,7 @@ fi
 
 # partitioning
 message 'Creating partitions..'
-#if [ "$partition_table" = 'gpt' ]; then
-#	part_utility='gdisk'
-#else
-#	part_utility='fdisk'
-#fi
 
-## swap partition
 if [ "$swap" = 'yes' ]; then
 	swap_part_number=1
 	root_part_number=2
@@ -229,38 +223,77 @@ else
 	root_part_number=1
 	home_part_number=2
 fi
-if [ "$swap" = 'yes' ]; then
-echo -e "n\n \
+
+## MBR
+if [ "$partition_table" = 'mbr' ]; then
+	
+	## swap partition
+	if [ "$swap" = 'yes' ]; then
+	echo -e "n\n \
                   p\n \
-                  "$swap_part_number"\n \
-                  \n \
-                 +"$swap_size"G\n \
-                  t\n \
+                   "$swap_part_number"\n \
+                    \n \
+                    +"$swap_size"G\n \
+                   t\n \
                   82\n
                  w" | fdisk "$dest_disk"
 
-        ## wait a moment
-        sleep 1
-fi
+        	## wait a moment
+        	sleep 1
+	fi
 
-## root_partition
-echo -e "n\n \
+	## root partition
+	echo -e "n\n \
                   p\n \
+                   "$root_part_number"\n \
+                   \n \
+                  +"$root_size"G\n \
+                 w" | fdisk "$dest_disk"
+
+	## wait a moment
+	sleep 1
+
+	## home partition
+	echo -e "n\n \
+                  p\n \
+                   "$home_part_number"\n \
+                   \n \
+                  \n \
+                 w" | fdisk "$dest_disk"
+
+## GPT
+else
+	## swap partition
+	if [ "$swap" = 'yes' ]; then
+		echo -e "n\n \
+                          "$swap_part_number"\n \
+                           \n \
+                           +"$swap_size"G\n \
+                          8200\n \
+                         w" | gdisk "$dest_disk"
+	fi
+	
+	# wait a moment
+	sleep 1
+	
+	## root partition
+	echo -e "n\n \
                   "$root_part_number"\n \
+                   \n \
+                   +"$root_size"G\n \
                   \n \
-                 +"$root_size"G\n \
-                 w" | fdisk "$dest_disk"
+                 w" | gdisk "$dest_disk"
+	
+	# wait a moment
+	sleep 1
 
-## wait a moment
-sleep 1
-
-## home_partition
-echo -e "n\n \
-                  p\n \
+	## home partition
+	echo -e "n\n \
                   "$home_part_number"\n \
+		   \n \
                   \n \
-                  \n \
-                 w" | fdisk "$dest_disk"
+                 w" | gdisk "$dest_disk"
+fi
 
 # encrypt home partition
 if [ "$encrypt_home" = 'yes' ]; then
@@ -319,7 +352,7 @@ fi
 message 'Successfully installed base system.'
 
 # additional packages
-if [ "$packages" != 'none' ]; then
+if [ ! -z "$packages" ]; then
 	message 'Installing additional packages'
 	pacstrap /mnt "$packages"
 fi
