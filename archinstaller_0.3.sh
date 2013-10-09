@@ -12,7 +12,7 @@
 ##################################################################
 #
 
-# NO UEFI SUPPORT
+# MBR AND BIOS ONLY. NO UEFI SUPPORT.
 
 ## -------------
 ## CONFIGURATION
@@ -25,9 +25,10 @@ dest_disk=''
 # example:
 # dest_disk='/dev/sda'
 
+## !! GPT is currently broken
 # GUID Partition Table (gpt/mbr)
 # ( left empty,the script uses MBR if a drive is smaller than 1 TiB, GPT otherwise )
-partition_table=''
+#partition_table=''
 # example:
 # partition_table='gpt'
 
@@ -115,25 +116,27 @@ echo  '======================================'
 
 # functions
 config_fail() {
-echo
+echo -e "\033[31m"
 echo 'archinstaller.sh:'
 echo "Error, please check variable $1 !"
+echo -e "\033[0m"
 exit 1
 }
 
 fail() {
-echo
+echo -e "\033[31m"
 echo 'archinstaller.sh:'
 echo "Error, $1"
+echo -e "\033[0m"
 exit 1
 }
 
 message() {
-echo
+echo -e "\033[31m"
 echo 'archinstaller.sh:'
 echo "$1"
-echo
-sleep 1
+echo -e "\033[0m"
+sleep 2
 }
 
 # paranoid shell
@@ -167,38 +170,34 @@ fi
 udevadm info --query=all --name=$dest_disk | grep DEVTYPE=disk || config_fail 'dest_disk'
 
 # check disk size
-if [ -z "$partition_table" ]; then
-	dest_disk_size=$(lsblk -dnbo size "$dest_disk")
-	# check if disk is larger than 1099511627776 bytes ( 1TiB )
-	if echo ""$dest_disk_size" > 1099511627776" | bc ; then
-        	partition_table='gpt'
-	else
-        	partition_table='mbr'
-	fi
-fi
+#if [ -z "$partition_table" ]; then
+#	dest_disk_size=$(lsblk -dnbo size "$dest_disk")
+#	# check if disk is larger than 1099511627776 bytes ( 1TiB )
+#	if echo ""$dest_disk_size" > 1099511627776" | bc ; then
+#        	partition_table='gpt'
+#	else
+#        	partition_table='mbr'
+#	fi
+#fi
 
 message 'Configuration appears to be complete.'
 
 # check internet connection
 message 'Checking internet connection..'
 wget -q --tries=10 --timeout=5 http://www.google.com -O /tmp/index.google
-if [ ! -s /tmp/index.google ];then
-	fail 'please configure your network connection.'
-else
-	echo 'Success.'
-	echo
-fi
+[ ! -s /tmp/index.google ] && fail 'please configure your network connection.'
 
 # initializing
 REPLY='yes'
 if [ "$confirm" != 'no' ]; then
-	echo
+	echo -e "\033[31m"
 	echo 'archinstaller.sh:'
 	echo 'WARNING:'
 	echo '---------------------------------------'
 	echo 'The destination drive will be formatted.'
 	echo "All data on "$dest_disk" will be lost!"
 	echo '---------------------------------------'
+	echo -e "\033[0m"
 	read -p 'Continue (yes/no)? '
 fi
 if [ "$REPLY" = 'yes' ]; then
@@ -213,11 +212,11 @@ fi
 
 # partitioning
 message 'Creating partitions..'
-if [ "$partition_table" = 'gpt' ]; then
-	part_utility='gdisk'
-else
-	part_utility='fdisk'
-fi
+#if [ "$partition_table" = 'gpt' ]; then
+#	part_utility='gdisk'
+#else
+#	part_utility='fdisk'
+#fi
 
 ## swap partition
 if [ "$swap" = 'yes' ]; then
@@ -236,7 +235,7 @@ echo -e "n\n \
                  +"$swap_size"G\n \
                   t\n \
                   82\n
-                 w" | "$part_utility" "$dest_disk"
+                 w" | fdisk "$dest_disk"
 
         ## wait a moment
         sleep 1
@@ -248,7 +247,7 @@ echo -e "n\n \
                   "$root_part_number"\n \
                   \n \
                  +"$root_size"G\n \
-                 w" | "$part_utility" "$dest_disk"
+                 w" | fdisk "$dest_disk"
 
 ## wait a moment
 sleep 1
@@ -259,7 +258,7 @@ echo -e "n\n \
                   "$home_part_number"\n \
                   \n \
                   \n \
-                 w" | "$part_utility" "$dest_disk"
+                 w" | fdisk "$dest_disk"
 
 # encrypt home partition
 if [ "$encrypt_home" = 'yes' ]; then
@@ -389,10 +388,12 @@ umount /mnt
 finish_time=$(date +%s)
 min=$(( $((finish_time - start_time)) /60 ))
 
+echo -e "\033[31m"
 echo '---------------------------------------'
 echo 'Installation completed!'
 echo 'Eject any DVD or USB and reboot!'
 echo '---------------------------------------'
+echo -e "\033[0m"
 
 message "Total install time: "$min" minutes."
 
