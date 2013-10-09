@@ -272,12 +272,12 @@ else
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
 	#DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
-	echo -e "n\n \
-"$swap_part_number"\n \
-\n \
-+"$swap_size"G\n \
-8200\n \
-w\n \
+	echo -e "n\n\
+"$swap_part_number"\n\
+\n\
++"$swap_size"G\n\
+8200\n\
+w\n\
 Y" | gdisk "$dest_disk"
 	
 	# wait a moment
@@ -285,23 +285,24 @@ Y" | gdisk "$dest_disk"
 	fi
 	
 	## root partition
-	echo -e "n\n \
-"$root_part_number"\n \
-\n \
-+"$root_size"G\n \
-\n \
-w\n \
+	echo -e "n\n\
+"$root_part_number"\n\
+\n\
++"$root_size"G\n\
+8300\n\
+w\n\
 Y" | gdisk "$dest_disk"
 	
 	# wait a moment
 	sleep 1
 
 	## home partition
-	echo -e "n\n \
-"$home_part_number"\n \
-\n \
-\n \
-w\n \
+	echo -e "n\n\
+"$home_part_number"\n\
+\n\
+\n\
+8300\n\
+w\n\
 Y" | gdisk "$dest_disk"
 fi
 
