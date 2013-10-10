@@ -105,6 +105,15 @@ hostname=''
 set_root_password=''
 # example: set_root_password='no'
 
+# add user (yes/no)
+# ( if set to yes, you will be prompted for a password at the end of the installation )
+add_user=''
+# example: add_user='yes'
+
+# user_name
+user_name=''
+# example: user_name='myuser'
+
 ## END CONFIGURATION
 ## -----------------
 
@@ -444,6 +453,15 @@ fi
 if [ "$set_root_password" = 'yes' ]; then
 	message 'Setting password for root user..'
 	arch-chroot /mnt /usr/bin/passwd root
+fi
+
+# add user
+if [ "$add_user" = 'yes' ]; then
+message 'Adding new user..'
+arch-chroot /mnt /usr/bin/useradd -m -G wheel -s /bin/bash $user_name
+## setting password
+message 'Setting password for new user..'
+arch-chroot /mnt /usr/bin/passwd $user_name
 fi
 
 # finish
