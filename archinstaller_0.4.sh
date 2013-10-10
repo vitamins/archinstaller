@@ -366,6 +366,7 @@ fi
 # mirrorlist
 message 'Configuring mirrorlist..'
 [ "$mirrorlist" != 'keep' ] && echo "$mirrorlist" > /etc/pacman.d/mirrorlist
+wget -O - 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&ip_version=4' | sed 's/#Server/Server/' >> /etc/pacman.d/mirrorlist
 
 # pacstrap base
 message 'Installing base system..'
