@@ -64,7 +64,7 @@ encrypt_home=''
 # ( set to 'keep' for using the current mirrorlist )
 mirrorlist=''
 # example:
-# mirrorlist='Server = http://mirror.de.leaseweb.net/archlinux/$repo/os/$arch'
+# mirrorlist='keep'
 
 # install base-devel group (yes/no)
 base_devel=''
@@ -365,7 +365,7 @@ fi
 
 # mirrorlist
 message 'Configuring mirrorlist..'
-[ "$mirrorlist" != 'keep' ] && echo "$mirrorlist" > /etc/pacman.d/mirrorlist
+[ "$mirrorlist" != 'keep' ] && curl -o /etc/pacman.d/mirrorlist 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&use_mirror_status=on'
 
 # pacstrap base
 message 'Installing base system..'
