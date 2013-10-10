@@ -110,7 +110,7 @@ set_root_password=''
 add_user=''
 # example: add_user='yes'
 
-# user_name
+# username
 user_name=''
 # example: user_name='myuser'
 
@@ -182,6 +182,11 @@ fi
 [ -z "$hardware_clock" ] && config_fail 'hardware_clock'
 [ -z "$hostname" ] && config_fail 'hostname'
 [ -z "$set_root_password" ] && config_fail 'set_root_password'
+if [ -z "$add_user" ]; then
+	config_fail 'add_user'
+elif [ "$add_user" = 'yes' ]; then
+	[ -z "$user_name" ] && config_fail 'user_name'
+fi
 
 # check if dest_disk is a valid block device
 udevadm info --query=all --name=$dest_disk | grep DEVTYPE=disk || config_fail 'dest_disk'
@@ -457,11 +462,11 @@ fi
 
 # add user
 if [ "$add_user" = 'yes' ]; then
-message 'Adding new user..'
-arch-chroot /mnt /usr/bin/useradd -m -G wheel -s /bin/bash $user_name
-## setting password
-message 'Setting password for new user..'
-arch-chroot /mnt /usr/bin/passwd $user_name
+	message 'Adding new user..'
+	arch-chroot /mnt /usr/bin/useradd -m -g users -G wheel -s /bin/bash "$user_name"
+	## set user password
+	message "Setting new password for "$user_name".."
+	arch-chroot /mnt /usr/bin/passwd "$user_name"
 fi
 
 # finish
