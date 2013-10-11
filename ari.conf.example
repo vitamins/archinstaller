@@ -1,0 +1,39 @@
+#
+# Configuration file for archinstaller.sh
+# 
+# Copy it to the same directory as archinstaller.sh .
+#
+# authors	: Dennis Anfossi & teateawhy
+# contact	: https://bbs.archlinux.org/profile.php?id=57887
+# date		: 10-11
+# version	: 0.4.2
+# license	: GPLv2
+#
+# Read archinstaller.sh for details about how the options are processed.
+#
+# EXAMPLE CONFIGURATION ONLY
+#
+
+confirm='yes'
+dest_disk='/dev/sda'
+partition_table='gpt'
+bootloader='syslinux'
+swap='no'
+root_size='20G'
+fstype='ext4'
+encrypt_home='yes'
+cipher='aes-xts-plain64'
+hash_alg='sha512'
+key_size='512'
+mirrorlist='Server = http://mirror.de.leaseweb.net/archlinux/$repo/os/$arch'
+base_devel='yes'
+packages='vim'
+locale_gen='de_DE.UTF-8 UTF-8'
+locale_conf='de_DE.UTF-8'
+keymap='de-latin1'
+font='Lat2-Terminus16'
+timezone='Europe/Berlin'
+hardware_clock='utc'
+hostname='ted'
+set_root_password='no'
+add_user='no'
