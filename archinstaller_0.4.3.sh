@@ -6,7 +6,7 @@
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
 # date		: 10-11
-# version	: 0.4.2
+# version	: 0.4.3
 # license	: GPLv2
 # usage		: edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -145,6 +145,18 @@ if [ "$add_user" = 'yes' ]; then
 	[ -z "$user_name" ] && config_fail 'user_name'
 else
 	[ "$add_user" != 'no' ] && config_fail 'user_name'
+fi
+## xorg
+[ -z "$xorg" ] && config_fail 'xorg'
+## install desktop environment
+if [ "$install_desktop_environment" = 'yes' ]; then
+        ### desktop environment
+        [ -z "$desktop_environment" ] && config_fail 'desktop_environment'
+fi
+## install display manager
+if [ "$install_display_manager" = 'yes' ]; then
+        ### display manager
+        [ -z "$display_manager" ] && config_fail 'display_manager'
 fi
 
 ## no config_fail beyond this point
@@ -459,6 +471,55 @@ if [ "$add_user" = 'yes' ]; then
 	## set user password
 	message "Setting new password for "$user_name".."
 	arch-chroot /mnt /usr/bin/passwd "$user_name"
+fi
+# install xorg
+if [ "$xorg" = 'yes' ]; then
+        pacstrap /mnt xorg xorg-xinit
+fi
+
+# install desktop environment
+if [ "$install_desktop_environment" = 'yes' ]; then
+        if [ "$desktop_environment" = 'xfce4' ]; then
+                pacstrap /mnt xfce4 xfce4-goodies
+        elif [ "$desktop_environment" = 'gnome' ]; then
+                pacstrap /mnt gnome gnome-extra
+        elif [ "$desktop_environment" = 'kde' ]; then
+                pacstrap /mnt kde
+        elif [ "$desktop_environment" = 'mate' ]; then
+                echo "[mate]                                      
+                SigLevel = Never
+                Server = http://repo.mate-desktop.org/archlinux/"\$"arch" >> /mnt/etc/pacman.conf
+
+                echo "[mate]                                      
+                SigLevel = Never
+                Server = http://repo.mate-desktop.org/archlinux/"\$"arch" >> /etc/pacman.conf
+
+                pacstrap /mnt xorg mate mate-extras
+
+        elif [ "$desktop_environment" = 'cinnamon' ]; then
+                pacstrap /mnt cinnamon
+
+        elif [ "$desktop_environment" = 'lxde' ]; then
+                pacstrap /mnt lxde
+
+        elif [ "$desktop_environment" = 'enlightenment17' ]; then
+                pacstrap /mnt enlightenment17
+
+        fi
+fi
+
+# install display manager
+if [ "$install_display_manager" = 'yes' ]; then
+        if [ "$display_manager" = 'gdm' ]; then
+                pacstrap /mnt gdm
+        elif [ "$display_manager" = 'kdebase-workspace' ]; then
+                pacstrap /mnt kdebase-workspace
+        elif [ "$display_manager" = 'lxdm' ]; then
+                pacstrap /mnt lxdm
+        elif [ "$display_manager" = 'xdm' ]; then
+                pacstrap /mnt xorg-xdm
+        fi
+
 fi
 
 # finish
