@@ -127,7 +127,7 @@ fi
 ## hostname
 [ -z "$hostname" ] && config_fail 'hostname'
 ## wired
-[[ "$wired" = 'no' || "$wired" = 'dhcpcd' || "$wired" = 'netctl' || "$wired" = 'ifplugd' || "$wired = 'static' ]] \
+[[ "$wired" = 'no' || "$wired" = 'dhcpcd' || "$wired" = 'netctl' || "$wired" = 'ifplugd' || "$wired" = 'static' ]] \
  || config_fail 'wired'
 if [ "$wired" = 'static' ]; then
 	### adress
@@ -163,12 +163,14 @@ fi
 
 # check internet connection
 message 'Checking internet connection..'
-wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html
-[ ! -s /tmp/index.html ] && fail 'please configure your network connection.'
+if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
+	[ -s /tmp/index.html ] || fail 'please configure your network connection.'
+else
+	fail 'please configure your network connection.'
+fi
 
-# initializing
-REPLY='yes'
-if [ "$confirm" != 'no' ]; then
+# ask for confirmation
+if [ "$confirm" = 'yes' ]; then
 	echo -e "\033[31m"
 	echo 'archinstaller.sh:'
 	echo 'WARNING:'
@@ -177,18 +179,23 @@ if [ "$confirm" != 'no' ]; then
 	echo "All data on "$dest_disk" will be lost!"
 	echo '---------------------------------------'
 	echo -ne "\033[0m"
-	read -p 'Continue (yes/no)? '
+	answer='x'
+	while [ "$answer" != 'yes' ]; do
+		echo -n 'Continue (yes/no) '
+		read answer
+		if [ "$answer" = 'no' ]; then
+			message 'Script cancelled!'
+			exit 0
+		fi
+	done
 fi
-if [ "$REPLY" = 'yes' ]; then
-	message 'Preparing disk..'
-	umount "$dest_disk"* || :
-        wipefs -a $dest_disk
-        dd if=/dev/zero of=$dest_disk count=100 bs=512; partprobe $dest_disk
-	sync; partprobe -s $dest_disk; sleep 5
-else
-	message 'Script cancelled!'
-	exit 0
-fi
+
+# prepare disk
+message 'Preparing disk..'
+umount "$dest_disk"* || :
+wipefs -a "$dest_disk"
+dd if=/dev/zero of="$dest_disk" count=100 bs=512; partprobe "$dest_disk"
+sync; partprobe -s "$dest_disk"; sleep 5
 
 # partitioning
 message 'Creating partitions..'
