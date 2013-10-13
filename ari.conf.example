@@ -6,7 +6,7 @@
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://bbs.archlinux.org/profile.php?id=57887
 # date		: 10-11
-# version	: 0.4.2
+# version	: 0.4.3
 # license	: GPLv2
 #
 # Read archinstaller.sh for details about how the options are processed.
@@ -38,3 +38,8 @@ hostname='ted'
 set_root_password='no'
 add_user='no'
 wired='dhcpcd'
+xorg='yes'
+install_desktop_environment='yes'
+desktop_environment='mate'
+install_display_manager='yes'
+desktop_environment='lxdm'
