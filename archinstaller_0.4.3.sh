@@ -6,7 +6,7 @@
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
 # date		: 10-11
-# version	: 0.4.2
+# version	: 0.4.3
 # license	: GPLv2
 # usage		: edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -146,6 +146,21 @@ if [ "$add_user" = 'yes' ]; then
 else
 	[ "$add_user" != 'no' ] && config_fail 'user_name'
 fi
+## xorg
+[ -z "$xorg" ] && config_fail 'xorg'
+## install desktop environment
+if [ "$install_desktop_environment" = 'yes' ]; then
+        ### desktop environment
+        [ -z "$desktop_environment" ] && config_fail 'desktop_environment'
+fi
+## install display manager
+if [ "$install_display_manager" = 'yes' ]; then
+        ### display manager
+        [ -z "$display_manager" ] && config_fail 'display_manager'
+fi
+
+## Graphical boot
+[ -z "$graphical_boot" ] && config_fail 'graphical_boot'
 
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
@@ -348,12 +363,6 @@ else
 fi
 message 'Successfully installed base system.'
 
-# additional packages
-if [ ! -z "$packages" ]; then
-	message 'Installing additional packages..'
-	pacstrap /mnt "$packages"
-fi
-
 # configure system
 message 'Configuring system..'
 ## crypttab
@@ -459,6 +468,59 @@ if [ "$add_user" = 'yes' ]; then
 	## set user password
 	message "Setting new password for "$user_name".."
 	arch-chroot /mnt /usr/bin/passwd "$user_name"
+fi
+# install xorg
+if [ "$xorg" = 'yes' ]; then
+        pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
+fi
+
+# install desktop environment
+if [ "$install_desktop_environment" = 'yes' ]; then
+        if [ "$desktop_environment" = 'xfce4' ]; then
+                pacstrap /mnt xfce4 xfce4-goodies
+        elif [ "$desktop_environment" = 'gnome' ]; then
+                pacstrap /mnt gnome gnome-extra
+        elif [ "$desktop_environment" = 'kde' ]; then
+                pacstrap /mnt kde
+        elif [ "$desktop_environment" = 'cinnamon' ]; then
+                pacstrap /mnt cinnamon
+        elif [ "$desktop_environment" = 'lxde' ]; then
+                pacstrap /mnt lxde
+        elif [ "$desktop_environment" = 'enlightenment17' ]; then
+                pacstrap /mnt enlightenment17
+        fi
+fi
+
+# install display manager
+if [ "$install_display_manager" = 'yes' ]; then
+        if [ "$display_manager" = 'gdm' ]; then
+                pacstrap /mnt gdm
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable gdm.service
+                fi
+        elif [ "$display_manager" = 'kdebase-workspace' ]; then
+                pacstrap /mnt kdebase-workspace
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable kdm.service
+                fi
+        elif [ "$display_manager" = 'lxdm' ]; then
+                pacstrap /mnt lxdm
+		if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable lxdm.service
+                fi
+        elif [ "$display_manager" = 'xdm' ]; then
+                pacstrap /mnt xorg-xdm
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable xdm.service
+                fi
+        fi
+
+fi
+
+# additional packages
+if [ ! -z "$packages" ]; then
+	message 'Installing additional packages..'
+	pacstrap /mnt "$packages"
 fi
 
 # finish
