@@ -162,7 +162,8 @@ if [ "$xorg" = 'yes' ]; then
 			cinnamon)	;;
 			lxde)		;;
 			enlightenment17);;
-			*)		config_fail 'desktop_environment'
+			*)		config_fail 'desktop_environment';;
+		esac
 	else
 		[ "$install_desktop_environment" = 'no' ] || config_fail 'install_desktop_environment'
 	fi
