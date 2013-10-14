@@ -159,6 +159,9 @@ if [ "$install_display_manager" = 'yes' ]; then
         [ -z "$display_manager" ] && config_fail 'display_manager'
 fi
 
+## Graphical boot
+[ -z "$graphical_boot" ] && config_fail 'graphical_boot'
+
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
 
@@ -360,12 +363,6 @@ else
 fi
 message 'Successfully installed base system.'
 
-# additional packages
-if [ ! -z "$packages" ]; then
-	message 'Installing additional packages..'
-	pacstrap /mnt "$packages"
-fi
-
 # configure system
 message 'Configuring system..'
 ## crypttab
@@ -474,7 +471,7 @@ if [ "$add_user" = 'yes' ]; then
 fi
 # install xorg
 if [ "$xorg" = 'yes' ]; then
-        pacstrap /mnt xorg xorg-xinit
+        pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
 fi
 
 # install desktop environment
@@ -485,26 +482,12 @@ if [ "$install_desktop_environment" = 'yes' ]; then
                 pacstrap /mnt gnome gnome-extra
         elif [ "$desktop_environment" = 'kde' ]; then
                 pacstrap /mnt kde
-        elif [ "$desktop_environment" = 'mate' ]; then
-                echo "[mate]                                      
-                SigLevel = Never
-                Server = http://repo.mate-desktop.org/archlinux/"\$"arch" >> /mnt/etc/pacman.conf
-
-                echo "[mate]                                      
-                SigLevel = Never
-                Server = http://repo.mate-desktop.org/archlinux/"\$"arch" >> /etc/pacman.conf
-
-                pacstrap /mnt xorg mate mate-extras
-
         elif [ "$desktop_environment" = 'cinnamon' ]; then
                 pacstrap /mnt cinnamon
-
         elif [ "$desktop_environment" = 'lxde' ]; then
                 pacstrap /mnt lxde
-
         elif [ "$desktop_environment" = 'enlightenment17' ]; then
                 pacstrap /mnt enlightenment17
-
         fi
 fi
 
@@ -512,14 +495,32 @@ fi
 if [ "$install_display_manager" = 'yes' ]; then
         if [ "$display_manager" = 'gdm' ]; then
                 pacstrap /mnt gdm
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable gdm.service
+                fi
         elif [ "$display_manager" = 'kdebase-workspace' ]; then
                 pacstrap /mnt kdebase-workspace
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable kdm.service
+                fi
         elif [ "$display_manager" = 'lxdm' ]; then
                 pacstrap /mnt lxdm
+		if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable lxdm.service
+                fi
         elif [ "$display_manager" = 'xdm' ]; then
                 pacstrap /mnt xorg-xdm
+                if [ "$graphical_boot" = 'yes' ]; then
+                arch-chroot /mnt /usr/bin/systemctl enable xdm.service
+                fi
         fi
 
+fi
+
+# additional packages
+if [ ! -z "$packages" ]; then
+	message 'Installing additional packages..'
+	pacstrap /mnt "$packages"
 fi
 
 # finish
