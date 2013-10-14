@@ -5,7 +5,7 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://bbs.archlinux.org/profile.php?id=57887
-# date		: 10-11
+# date		: 14.10.2013
 # version	: 0.4.3
 # license	: GPLv2
 #
@@ -42,5 +42,5 @@ xorg='yes'
 install_desktop_environment='yes'
 desktop_environment='xfce4'
 install_display_manager='yes'
-desktop_environment='lxdm'
-graphical_boot='yes'
+display_manager='lxdm'
+graphical_login='yes'

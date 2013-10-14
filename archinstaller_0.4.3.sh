@@ -5,7 +5,7 @@
 # description	: automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 10-11
+# date		: 14.10.2013
 # version	: 0.4.3
 # license	: GPLv2
 # usage		: edit ari.conf and run ./archinstaller.sh
@@ -41,10 +41,10 @@ sleep 2
 }
 
 # check root priviledges
-[ "$EUID" != '0' ] && fail 'you must execute the script as the root user.'
+[ "$EUID" = '0' ] || fail 'you must execute the script as the root user.'
 
 # check arch linux
-[ ! -e /etc/arch-release ] && fail 'you must execute the script on arch linux.'
+[ -e /etc/arch-release ] || fail 'you must execute the script on arch linux.'
 
 start_time=$(date +%s)
 
@@ -58,7 +58,7 @@ echo -e "\033[0m"
 set -e -u
 
 # check if configuration file is here
-[ ! -s "./ari.conf" ] && fail "configuration file ari.conf not found in $(pwd) ."
+[ -s "./ari.conf" ] || fail "configuration file ari.conf not found in $(pwd) ."
 
 # source configuration file
 source ./ari.conf
@@ -82,7 +82,7 @@ if [ "$swap" = 'yes' ]; then
 	### swap_size
 	[ -z "$swap_size" ] && config_fail 'swap_size'
 else
-	[ "$swap" != 'no' ] && config_fail 'swap'
+	[ "$swap" = 'no' ] || config_fail 'swap'
 fi
 ## root_size
 [ -z "$root_size" ] && config_fail 'root_size'
@@ -96,7 +96,7 @@ for fs in ${fstypes[@]}; do
                 break
         fi
 done
-[ "$fstype_correct" != 1 ] && config_fail 'fstype'
+[ "$fstype_correct" = 1 ] || config_fail 'fstype'
 ## encrypt_home
 if [ "$encrypt_home" = 'yes' ]; then
 	### cipher
@@ -106,7 +106,7 @@ if [ "$encrypt_home" = 'yes' ]; then
 	### key_size
 	[ -z "$key_size" ] && config_fail 'key_size'
 else
-	[ "$encrypt_home" != 'no' ] && config_fail 'encrypt_home'
+	[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
 fi
 ## mirrorlist
 [ -z "$mirrorlist" ] && config_fail 'mirrorlist'
@@ -127,16 +127,19 @@ fi
 ## hostname
 [ -z "$hostname" ] && config_fail 'hostname'
 ## wired
-[[ "$wired" = 'no' || "$wired" = 'dhcpcd' || "$wired" = 'netctl' || "$wired" = 'ifplugd' || "$wired" = 'static' ]] \
- || config_fail 'wired'
-if [ "$wired" = 'static' ]; then
-	### adress
-	[ -z "$adress" ] && config_fail 'adress'
-	### gateway
-	[ -z "$gateway" ] && config_fail 'gateway'
-	### dns
-	[ -z "$dns" ] && config_fail 'dns'
-fi
+case "$wired" in
+	no)	;;
+	dhcpcd)	;;
+	netctl)	;;
+	ifplugd);;
+	static)	### adress
+		[ -z "$adress" ] && config_fail 'adress'
+		### gateway
+		[ -z "$gateway" ] && config_fail 'gateway'
+		### dns
+		[ -z "$dns" ] && config_fail 'dns';;
+	*)	config_fail 'wired';;
+esac
 ## set_root_password
 [[ "$set_root_password" = 'yes' || "$set_root_password" = 'no' ]] || config_fail 'set_root_password'
 ## add_user
@@ -144,23 +147,43 @@ if [ "$add_user" = 'yes' ]; then
 	### user_name
 	[ -z "$user_name" ] && config_fail 'user_name'
 else
-	[ "$add_user" != 'no' ] && config_fail 'user_name'
-fi
-## xorg
-[ -z "$xorg" ] && config_fail 'xorg'
-## install desktop environment
-if [ "$install_desktop_environment" = 'yes' ]; then
-        ### desktop environment
-        [ -z "$desktop_environment" ] && config_fail 'desktop_environment'
-fi
-## install display manager
-if [ "$install_display_manager" = 'yes' ]; then
-        ### display manager
-        [ -z "$display_manager" ] && config_fail 'display_manager'
+	[ "$add_user" = 'no' ] || config_fail 'user_name'
 fi
 
-## Graphical boot
-[ -z "$graphical_boot" ] && config_fail 'graphical_boot'
+## xorg
+if [ "$xorg" = 'yes' ]; then
+	### install_desktop_environment
+	if [ "$install_desktop_environment" = 'yes' ]; then
+		#### desktop_environment
+		case "$desktop_environment" in
+			xfce4)		;;
+			gnome)		;;
+			kde)		;;
+			cinnamon)	;;
+			lxde)		;;
+			enlightenment17);;
+			*)		config_fail 'desktop_environment'
+	else
+		[ "$install_desktop_environment" = 'no' ] || config_fail 'install_desktop_environment'
+	fi
+	### install_display_manager
+	if [ "$install_display_manager" = 'yes' ]; then
+		#### display_manager
+		case "$display_manager" in
+			gdm)	;;
+			kdm)	;;
+			lxdm)	;;
+			xdm)	;;
+			*)	config_fail 'display_manager';;
+		esac
+		### graphical login
+		[[ "$graphical_login" = 'yes' || "$graphical_login" = 'no' ]] || config_fail 'graphical_login'
+	else
+		[ "$install_display_manager" = 'no' ] || config_fail 'install_display_manager'
+	fi
+else
+	[ "$xorg" = 'no' ] || config_fail 'xorg'
+fi
 
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
@@ -196,7 +219,7 @@ if [ "$confirm" = 'yes' ]; then
 	echo -ne "\033[0m"
 	answer='x'
 	while [ "$answer" != 'yes' ]; do
-		echo -n 'Continue (yes/no) '
+		echo -n 'Continue? (yes/no) '
 		read answer
 		if [ "$answer" = 'no' ]; then
 			message 'Script cancelled!'
@@ -398,19 +421,16 @@ echo "$hostname" > /mnt/etc/hostname
 if [ "$wired" != 'no' ]; then
 	### network interface shall always be named eth0
 	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
-	if [ "$wired" = 'dhcpcd' ]; then
-		arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service
-	elif [ "$wired" = 'netctl' ]; then
-		cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
-		arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic
-	elif [ "$wired" = 'ifplugd' ]; then
-		pacstrap /mnt ifplugd
-		arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service
-	elif [ "$wired" = 'static' ]; then
-		head -n 4 /mnt/etc/netctl/examples/ethernet-static > /mnt/etc/netctl/ethernet_static
-		echo -e "Adress="$adress"\nGateway="$gateway"\nDNS="$dns"" >> /mnt/etc/netctl/ethernet_static
-		arch-chroot /mnt /usr/bin/netctl enable ethernet_static
-	fi
+	case "$wired" in
+		dhcpcd)	arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service;;
+		netctl)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
+			arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
+		ifplugd)pacstrap /mnt ifplugd
+			arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
+		static)	head -n 4 /mnt/etc/netctl/examples/ethernet-static > /mnt/etc/netctl/ethernet_static
+			echo -e "Adress="$adress"\nGateway="$gateway"\nDNS="$dns"" >> /mnt/etc/netctl/ethernet_static
+			arch-chroot /mnt /usr/bin/netctl enable ethernet_static;;
+	esac
 fi
 
 ##  mkinitcpio
@@ -433,14 +453,14 @@ TIMEOUT 50
 DEFAULT arch
 
 LABEL arch
-        LINUX ../vmlinuz-linux
-        APPEND root="$dest_disk""$root_part_number" rw
-        INITRD ../initramfs-linux.img
+	LINUX ../vmlinuz-linux
+	APPEND root="$dest_disk""$root_part_number" rw
+	INITRD ../initramfs-linux.img
 
 LABEL archfallback
-        LINUX ../vmlinuz-linux
-        APPEND root="$dest_disk""$root_part_number" rw
-        INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
+	LINUX ../vmlinuz-linux
+	APPEND root="$dest_disk""$root_part_number" rw
+	INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
 else
 	## install grub & os prober packages
 	message 'Installing bootloader..'
@@ -449,7 +469,7 @@ else
 	## write grub to MBR
 	message 'Writing bootloader to MBR..'
 	arch-chroot /mnt /usr/bin/grub-install $dest_disk
-	
+
 	## configure grub
 	message 'Configuring bootloader..'
 	arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
@@ -469,55 +489,35 @@ if [ "$add_user" = 'yes' ]; then
 	message "Setting new password for "$user_name".."
 	arch-chroot /mnt /usr/bin/passwd "$user_name"
 fi
+
 # install xorg
 if [ "$xorg" = 'yes' ]; then
-        pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
+	pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
+	# install desktop environment
+	if [ "$install_desktop_environment" = 'yes' ]; then
+		case "$desktop_environment" in
+			xfce4)		 pacstrap /mnt xfce4 xfce4-goodies;;
+			gnome)		 pacstrap /mnt gnome gnome-extra;;
+			kde)		 pacstrap /mnt kde;;
+			cinnamon)	 pacstrap /mnt cinnamon;;
+			lxde)		 pacstrap /mnt lxde;;
+			enlightenment17) pacstrap /mnt enlightenment17;;
+		esac
+	fi
+	# install display manager
+	if [ "$install_display_manager" = 'yes' ]; then
+		case "$display_manager" in
+			gdm)	pacstrap /mnt gdm;;
+			kdm)	pacstrap /mnt kdebase-workspace;;
+			lxdm)	pacstrap /mnt lxdm;;
+			xdm)	pacstrap /mnt xorg-xdm;;
+		esac
+		[ "$graphical_login" = 'yes' ] && \
+		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
+	fi
 fi
 
-# install desktop environment
-if [ "$install_desktop_environment" = 'yes' ]; then
-        if [ "$desktop_environment" = 'xfce4' ]; then
-                pacstrap /mnt xfce4 xfce4-goodies
-        elif [ "$desktop_environment" = 'gnome' ]; then
-                pacstrap /mnt gnome gnome-extra
-        elif [ "$desktop_environment" = 'kde' ]; then
-                pacstrap /mnt kde
-        elif [ "$desktop_environment" = 'cinnamon' ]; then
-                pacstrap /mnt cinnamon
-        elif [ "$desktop_environment" = 'lxde' ]; then
-                pacstrap /mnt lxde
-        elif [ "$desktop_environment" = 'enlightenment17' ]; then
-                pacstrap /mnt enlightenment17
-        fi
-fi
-
-# install display manager
-if [ "$install_display_manager" = 'yes' ]; then
-        if [ "$display_manager" = 'gdm' ]; then
-                pacstrap /mnt gdm
-                if [ "$graphical_boot" = 'yes' ]; then
-                arch-chroot /mnt /usr/bin/systemctl enable gdm.service
-                fi
-        elif [ "$display_manager" = 'kdebase-workspace' ]; then
-                pacstrap /mnt kdebase-workspace
-                if [ "$graphical_boot" = 'yes' ]; then
-                arch-chroot /mnt /usr/bin/systemctl enable kdm.service
-                fi
-        elif [ "$display_manager" = 'lxdm' ]; then
-                pacstrap /mnt lxdm
-		if [ "$graphical_boot" = 'yes' ]; then
-                arch-chroot /mnt /usr/bin/systemctl enable lxdm.service
-                fi
-        elif [ "$display_manager" = 'xdm' ]; then
-                pacstrap /mnt xorg-xdm
-                if [ "$graphical_boot" = 'yes' ]; then
-                arch-chroot /mnt /usr/bin/systemctl enable xdm.service
-                fi
-        fi
-
-fi
-
-# additional packages
+# install additional packages
 if [ ! -z "$packages" ]; then
 	message 'Installing additional packages..'
 	pacstrap /mnt "$packages"
