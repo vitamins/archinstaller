@@ -521,7 +521,7 @@ fi
 # install additional packages
 if [ ! -z "$packages" ]; then
 	message 'Installing additional packages..'
-	pacstrap /mnt "$packages"
+	pacstrap /mnt `echo $packages`
 fi
 
 # finish
