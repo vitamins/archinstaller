@@ -440,7 +440,7 @@ arch-chroot /mnt mkinitcpio -p linux
 # bootloader
 if [[ "$partition_table" = 'gpt' || "$bootloader" = 'syslinux' ]]; then
 	## install syslinux & gptfdisk packages
-	message 'Installing bootloader..'
+	message 'Installing bootloader packages..'
 	pacstrap /mnt syslinux gptfdisk
 
 	## write syslinux to disk
@@ -464,11 +464,11 @@ LABEL archfallback
 	INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
 else
 	## install grub & os prober packages
-	message 'Installing bootloader..'
+	message 'Installing bootloader packages..'
 	pacstrap /mnt grub os-prober
 
-	## write grub to MBR
-	message 'Writing bootloader to MBR..'
+	## write grub to disk
+	message 'Writing bootloader to disk..'
 	arch-chroot /mnt /usr/bin/grub-install $dest_disk
 
 	## configure grub
@@ -521,7 +521,7 @@ fi
 # install additional packages
 if [ ! -z "$packages" ]; then
 	message 'Installing additional packages..'
-	pacstrap /mnt "$packages"
+	pacstrap /mnt ${packages[@]} || :
 fi
 
 # finish
