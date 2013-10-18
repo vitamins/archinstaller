@@ -5,7 +5,7 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://bbs.archlinux.org/profile.php?id=57887
-# date		: 14.10.2013
+# date		: 18.10.2013
 # version	: 0.4.3
 # license	: GPLv2
 #
@@ -25,9 +25,9 @@ encrypt_home='yes'
 cipher='aes-xts-plain64'
 hash_alg='sha512'
 key_size='512'
-mirrorlist='Server = http://mirror.de.leaseweb.net/archlinux/$repo/os/$arch'
+mirror='http://mirror.de.leaseweb.net/archlinux/$repo/os/$arch'
 base_devel='yes'
-packages='vim'
+packages=(vim)
 locale_gen='de_DE.UTF-8 UTF-8'
 locale_conf='de_DE.UTF-8'
 keymap='de-latin1'
@@ -36,7 +36,8 @@ timezone='Europe/Berlin'
 hardware_clock='utc'
 hostname='ted'
 set_root_password='no'
-add_user='no'
+add_user='yes'
+user_name='archey'
 wired='dhcpcd'
 xorg='yes'
 install_desktop_environment='yes'
