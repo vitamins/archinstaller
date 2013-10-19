@@ -69,9 +69,21 @@ message 'Checking configuration..'
 ## dest_disk
 ### check if dest_disk is a valid block device
 udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || config_fail 'dest_disk'
+# decide for gpt or mbr
+if [ "$partition_table" = 'auto' ]; then
+	dest_disk_size=$(blockdev --getsize64 "$dest_disk")
+	# check if disk is larger than 1099511627776 bytes ( 1TiB )
+	if [ "$dest_disk_size" -gt 1099511627776 ]; then
+		partition_table='gpt'
+	else
+		partition_table='mbr'
+	fi
+fi
+## partition_table
+[[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
 ## uefi
-[ "$uefi" = 'yes' ]; then
-	### test uefi mode
+if [ "$uefi" = 'yes' ]; then
+	### check if install host is booted in uefi mode
 	[ -z $(mount -t efivars) ] && mount -t efivarfs efivarfs /sys/firmware/efi/efivars || config_fail 'uefi'
 	efivar -l > /dev/null || config_fail 'uefi'
 	[ "$bootloader" = 'grub' ] || config_fail 'bootloader'
@@ -79,9 +91,6 @@ udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || 
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
 fi
-## partition_table
-[[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' || "$partition_table" = 'auto' ]] || \
-config_fail 'partition_table'
 ## bootloader
 [[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
 [[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' && "$uefi" = 'no' ]] && config_fail 'bootloader'
@@ -193,16 +202,6 @@ fi
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
 
-# decide for gpt or mbr
-if [ "$partition_table" = 'auto' ]; then
-	dest_disk_size=$(blockdev --getsize64 "$dest_disk")
-	# check if disk is larger than 1099511627776 bytes ( 1TiB )
-	if [ "$dest_disk_size" -gt 1099511627776 ]; then
-		partition_table='gpt'
-	else
-		partition_table='mbr'
-	fi
-fi
 
 # check internet connection
 message 'Checking internet connection..'
@@ -256,7 +255,7 @@ if [ "$uefi" = 'yes' ]; then
 		home_part_number=3
 	fi
 else
-	if [ "$swap" = 'yes ]; then
+	if [ "$swap" = 'yes' ]; then
 		swap_part_number=1
 		root_part_number=2
 		home_part_number=3
