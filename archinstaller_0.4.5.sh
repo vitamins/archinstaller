@@ -2,17 +2,16 @@
 #
 ###############################################################
 # title		: archinstaller.sh
-# description	: automated installation script for arch linux
+# description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 14.10.2013
-# version	: 0.4.3
+# date		: 19.10.2013
+# version	: 0.4.5
 # license	: GPLv2
-# usage		: edit ari.conf and run ./archinstaller.sh
+# usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
 #
-# BIOS ONLY, NO UEFI SUPPORT.
-# Don't forget to edit ari.conf .
+# Don't forget to edit ari.conf.
 #
 
 # functions
@@ -20,7 +19,7 @@ config_fail() {
 echo -e "\033[31m"
 echo '| archinstaller.sh:'
 echo "| Error, please check variable $1 !"
-echo -e "\033[0m"
+echo -ne "\033[0m"
 exit 1
 }
 
@@ -28,7 +27,7 @@ fail() {
 echo -e "\033[31m"
 echo '| archinstaller.sh:'
 echo "| Error, $1"
-echo -e "\033[0m"
+echo -ne "\033[0m"
 exit 1
 }
 
@@ -41,10 +40,10 @@ sleep 2
 }
 
 # check root priviledges
-[ "$EUID" = '0' ] || fail 'you must execute the script as the root user.'
+[ "$EUID" = '0' ] || fail 'this script must be executed as root!'
 
 # check arch linux
-[ -e /etc/arch-release ] || fail 'you must execute the script on arch linux.'
+[ -e /etc/arch-release ] || fail 'this script must be executed on arch linux!'
 
 start_time=$(date +%s)
 
@@ -58,7 +57,7 @@ echo -e "\033[0m"
 set -e -u
 
 # check if configuration file is here
-[ -s "./ari.conf" ] || fail "configuration file ari.conf not found in $(pwd) ."
+[ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
 
 # source configuration file
 source ./ari.conf
@@ -69,14 +68,23 @@ message 'Checking configuration..'
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 ## dest_disk
 ### check if dest_disk is a valid block device
-udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk || config_fail 'dest_disk'
-# partition_table
+udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || config_fail 'dest_disk'
+## uefi
+[ "$uefi" = 'yes' ]; then
+	### test uefi mode
+	[ -z $(mount -t efivars) ] && mount -t efivarfs efivarfs /sys/firmware/efi/efivars || config_fail 'uefi'
+	efivar -l > /dev/null || config_fail 'uefi'
+	[ "$bootloader" = 'grub' ] || config_fail 'bootloader'
+	[ "$partition_table" = 'gpt' ] || config_fail 'partition_table'
+else
+	[ "$uefi" = 'no' ] || config_fail 'uefi'
+fi
+## partition_table
 [[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' || "$partition_table" = 'auto' ]] || \
 config_fail 'partition_table'
 ## bootloader
 [[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
-[[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]] && config_fail \
-'bootloader, grub is not supported for gpt partition tables'
+[[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' && "$uefi" = 'no' ]] && config_fail 'bootloader'
 ## swap
 if [ "$swap" = 'yes' ]; then
 	### swap_size
@@ -88,15 +96,15 @@ fi
 [ -z "$root_size" ] && config_fail 'root_size'
 ## fstpye
 [ -z "$fstype" ] && config_fail 'fstype'
-fstypes='btrfs ext2 ext3 ext4 f2fs jfs minix nilfs2 ntfs reiserfs vfat xfs'
-fstype_correct=0
+fstypes='btrfs ext2 ext3 ext4 jfs nilfs2 reiserfs xfs'
+correct=0
 for fs in ${fstypes[@]}; do
         if [ "$fstype" = "$fs" ]; then
-                fstype_correct=1
+                correct=1
                 break
         fi
 done
-[ "$fstype_correct" = 1 ] || config_fail 'fstype'
+[ "$correct" = 1 ] || config_fail 'fstype'
 ## encrypt_home
 if [ "$encrypt_home" = 'yes' ]; then
 	### cipher
@@ -108,8 +116,8 @@ if [ "$encrypt_home" = 'yes' ]; then
 else
 	[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
 fi
-## mirrorlist
-[ -z "$mirrorlist" ] && config_fail 'mirrorlist'
+## mirror
+[ -z "$mirror" ] && config_fail 'mirror'
 ## base_devel
 [[ "$base_devel" = 'yes' || "$base_devel" = 'no' ]] || config_fail 'base_devel'
 ## locale_gen
@@ -118,10 +126,12 @@ fi
 [ -z "$locale_conf" ] && config_fail 'locale_conf'
 ## keymap
 [ -z "$keymap" ] && config_fail 'keymap'
+localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
 ## font
 [ -z "$font" ] && config_fail 'font'
 ## timezone
 [ -z "$timezone" ] && config_fail 'timezone'
+timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || config_fail 'timezone'
 ## hardware_clock
 [[ "$hardware_clock" = 'utc' || "$hardware_clock" = 'localtime' ]] || config_fail 'hardware_clock'
 ## hostname
@@ -132,12 +142,6 @@ case "$wired" in
 	dhcpcd)	;;
 	netctl)	;;
 	ifplugd);;
-	static)	### adress
-		[ -z "$adress" ] && config_fail 'adress'
-		### gateway
-		[ -z "$gateway" ] && config_fail 'gateway'
-		### dns
-		[ -z "$dns" ] && config_fail 'dns';;
 	*)	config_fail 'wired';;
 esac
 ## set_root_password
@@ -203,31 +207,31 @@ fi
 # check internet connection
 message 'Checking internet connection..'
 if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
-	[ -s /tmp/index.html ] || fail 'please configure your network connection.'
+	[ -s /tmp/index.html ] || fail 'please check the network connection!'
 else
-	fail 'please configure your network connection.'
+	fail 'please check the network connection!'
 fi
 
 # ask for confirmation
 if [ "$confirm" = 'yes' ]; then
 	echo -e "\033[31m"
-	echo 'archinstaller.sh:'
-	echo 'WARNING:'
-	echo '---------------------------------------'
+	echo '----------------------------------------'
 	echo 'The destination drive will be formatted.'
 	echo "All data on "$dest_disk" will be lost!"
-	echo '---------------------------------------'
+	echo '----------------------------------------'
 	echo -ne "\033[0m"
 	answer='x'
 	while [ "$answer" != 'yes' ]; do
 		echo -n 'Continue? (yes/no) '
 		read answer
 		if [ "$answer" = 'no' ]; then
-			message 'Script cancelled!'
-			exit 0
+			fail 'Script cancelled!'
 		fi
 	done
 fi
+
+# correct system time
+[ -s /usr/bin/ntpd ] && ntpd -gq
 
 # prepare disk
 message 'Preparing disk..'
@@ -239,13 +243,27 @@ sync; partprobe -s "$dest_disk"; sleep 5
 # partitioning
 message 'Creating partitions..'
 
-if [ "$swap" = 'yes' ]; then
-	swap_part_number=1
-	root_part_number=2
-	home_part_number=3
+## partition layout
+if [ "$uefi" = 'yes' ]; then
+	if [ "$swap" = 'yes' ]; then
+		efi_part_number=1
+		swap_part_number=2
+		root_part_number=3
+		home_part_number=4
+	else
+		efi_part_number=1
+		root_part_number=2
+		home_part_number=3
+	fi
 else
-	root_part_number=1
-	home_part_number=2
+	if [ "$swap" = 'yes ]; then
+		swap_part_number=1
+		root_part_number=2
+		home_part_number=3
+	else
+		root_part_number=1
+		home_part_number=2
+	fi
 fi
 
 ## MBR
@@ -262,8 +280,8 @@ if [ "$partition_table" = 'mbr' ]; then
                   82\n
                  w" | fdisk "$dest_disk"
 
-        	## wait a moment
-        	sleep 1
+		## wait a moment
+		sleep 1
 	fi
 
 	## root partition
@@ -287,10 +305,24 @@ if [ "$partition_table" = 'mbr' ]; then
 
 ## GPT
 else
+	## EFI system partition
+	if [ "$uefi" = 'yes' ]; then
+		esp_size='512M'
+		# DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
+		echo -e "n\n\
+"$efi_part_number"\n\
+\n\
++"$esp_size"\n\
+EF00\n\
+w\n\
+Y" | gdisk "$dest_disk"
+
+		# wait a moment
+		sleep 1
+	fi
 
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
-		#DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
 		echo -e "n\n\
 "$swap_part_number"\n\
 \n\
@@ -298,11 +330,11 @@ else
 8200\n\
 w\n\
 Y" | gdisk "$dest_disk"
-	
+
 		# wait a moment
 		sleep 1
 	fi
-	
+
 	## root partition
 	echo -e "n\n\
 "$root_part_number"\n\
@@ -311,7 +343,7 @@ Y" | gdisk "$dest_disk"
 8300\n\
 w\n\
 Y" | gdisk "$dest_disk"
-	
+
 	# wait a moment
 	sleep 1
 
@@ -342,6 +374,15 @@ if [ "$encrypt_home" = 'yes' ]; then
 fi
 
 # Create and mount filesystems
+## ESP
+if [ "$uefi" = 'yes' ]; then
+	message 'Formatting ESP..'
+	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
+	mkdir -p /mnt/boot
+	message 'Mounting ESP..'
+	mount "$dest_disk""$efi_part_number" /mnt/boot
+fi
+
 ## swap
 if [ "$swap" = 'yes' ]; then
 	message 'Formatting swap..'
@@ -369,10 +410,10 @@ else
 	mount -t "$fstype" "$dest_disk""$home_part_number" /mnt/home
 fi
 
-# mirrorlist
-if [ "$mirrorlist" != 'keep' ]; then
+# mirror
+if [ "$mirror" != 'keep' ]; then
 	message 'Configuring mirrorlist..'
-	echo "$mirrorlist" > /etc/pacman.d/mirrorlist
+	echo "Server = "$mirror"" > /etc/pacman.d/mirrorlist
 	wget -q --tries=10 --timeout=5 -O - \
 	'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&ip_version=4&use_mirror_status=on' | \
 	sed 's/#Server/Server/' >> /etc/pacman.d/mirrorlist
@@ -394,9 +435,10 @@ message 'Configuring system..'
 				>> /mnt/etc/crypttab
 
 ## fstab
-genfstab -L /mnt > /mnt/etc/fstab
+genfstab -U -p /mnt > /mnt/etc/fstab
 
 ## locale
+[ "$locale_gen" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
 echo "$locale_gen" >> /mnt/etc/locale.gen
 echo "LANG="$locale_conf"" > /mnt/etc/locale.conf
 arch-chroot /mnt /usr/bin/locale-gen
@@ -428,9 +470,6 @@ if [ "$wired" != 'no' ]; then
 			arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
 		ifplugd)pacstrap /mnt ifplugd
 			arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
-		static)	head -n 4 /mnt/etc/netctl/examples/ethernet-static > /mnt/etc/netctl/ethernet_static
-			echo -e "Adress="$adress"\nGateway="$gateway"\nDNS="$dns"" >> /mnt/etc/netctl/ethernet_static
-			arch-chroot /mnt /usr/bin/netctl enable ethernet_static;;
 	esac
 fi
 
@@ -438,18 +477,29 @@ fi
 arch-chroot /mnt mkinitcpio -p linux
 
 # bootloader
-if [[ "$partition_table" = 'gpt' || "$bootloader" = 'syslinux' ]]; then
-	## install syslinux & gptfdisk packages
-	message 'Installing bootloader packages..'
-	pacstrap /mnt syslinux gptfdisk
-
-	## write syslinux to disk
-	message 'Writing bootloader to disk..'
-	syslinux-install_update -i -a -m -c /mnt
-
-	## configure syslinux
+if [ "$uefi" = 'yes' ]; then
+	## UEFI
+	### install grub
+	message 'Installing bootloader..'
+	pacstrap /mnt grub efibootmgr dosfstools os-prober
+	# in special cases: efi_target='i386-efi'
+	efi_target='x86_64-efi'
+	arch-chroot /mnt /usr/bin/grub-install --target="$efi_target" --efi-directory=/boot \
+	--bootloader-id=arch_grub --recheck
+	### configure grub
 	message 'Configuring bootloader..'
-	echo "PROMPT 1
+	arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+else
+	## BIOS
+	if [[ "$bootloader" = 'syslinux' ]]; then
+		## install syslinux
+		message 'Installing bootloader..'
+		pacstrap /mnt syslinux gptfdisk
+		syslinux-install_update -i -a -m -c /mnt
+
+		## configure syslinux
+		message 'Configuring bootloader..'
+		echo "PROMPT 1
 TIMEOUT 50
 DEFAULT arch
 
@@ -462,18 +512,16 @@ LABEL archfallback
 	LINUX ../vmlinuz-linux
 	APPEND root="$dest_disk""$root_part_number" rw
 	INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
-else
-	## install grub & os prober packages
-	message 'Installing bootloader packages..'
-	pacstrap /mnt grub os-prober
+	else
+		## install grub
+		message 'Installing bootloader..'
+		pacstrap /mnt grub os-prober
+		arch-chroot /mnt /usr/bin/grub-install $dest_disk
 
-	## write grub to disk
-	message 'Writing bootloader to disk..'
-	arch-chroot /mnt /usr/bin/grub-install $dest_disk
-
-	## configure grub
-	message 'Configuring bootloader..'
-	arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+		## configure grub
+		message 'Configuring bootloader..'
+		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+	fi
 fi
 
 # root password
@@ -515,6 +563,17 @@ if [ "$xorg" = 'yes' ]; then
 		esac
 		[ "$graphical_login" = 'yes' ] && \
 		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
+	else
+		if [[ "$add_user" = 'yes' && "$install_desktop_environment" = 'yes' ]]; then
+			case "$desktop_environment" in
+				xfce4)		 echo "exec startxfce4" > /mnt/home/"$user_name"/.xinitrc;;
+				gnome)		 echo "exec gnome-session" > /mnt/home/"$user_name"/.xinitrc;;
+				kde)		 echo "exec startkde" > /mnt/home/"$user_name"/.xinitrc;;
+				cinnamon)	 echo "exec cinnamon-session" > /mnt/home/"$user_name"/.xinitrc;;
+				lxde)		 echo "exec startlxde" > /mnt/home/"$user_name"/.xinitrc;;
+				enlightenment17) echo "exec enlightenment_start" > /mnt/home/"$user_name"/.xinitrc;;
+			esac
+		fi
 	fi
 fi
 
@@ -524,11 +583,16 @@ if [ ! -z "$packages" ]; then
 	pacstrap /mnt ${packages[@]} || :
 fi
 
+# copy ari.conf
+cp ./ari.conf /mnt/etc/ari.conf
+message 'A copy of ari.conf can be found at /etc/ari.conf.'
+
 # finish
 message 'Finalizing..'
 
 ## unmount
 cd /
+[ "$uefi" = 'yes' ] && umount /mnt/boot
 umount /mnt/home
 umount /mnt
 

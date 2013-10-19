@@ -5,8 +5,8 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://bbs.archlinux.org/profile.php?id=57887
-# date		: 18.10.2013
-# version	: 0.4.3
+# date		: 19.10.2013
+# version	: 0.4.5
 # license	: GPLv2
 #
 # Read archinstaller.sh for details about how the options are processed.
@@ -16,6 +16,7 @@
 
 confirm='yes'
 dest_disk='/dev/sda'
+uefi='no'
 partition_table='gpt'
 bootloader='syslinux'
 swap='no'
@@ -42,6 +43,4 @@ wired='dhcpcd'
 xorg='yes'
 install_desktop_environment='yes'
 desktop_environment='xfce4'
-install_display_manager='yes'
-display_manager='lxdm'
-graphical_login='yes'
+install_display_manager='no'
