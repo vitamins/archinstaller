@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+
 ###############################################################
 # title		: archinstaller.sh
 # description	: Automated installation script for arch linux.
@@ -10,9 +10,6 @@
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
-#
-# Don't forget to edit ari.conf.
-#
 
 # functions
 config_fail() {
@@ -84,16 +81,23 @@ fi
 ## uefi
 if [ "$uefi" = 'yes' ]; then
 	### check if install host is booted in uefi mode
-	[ -z $(mount -t efivars) ] && mount -t efivarfs efivarfs /sys/firmware/efi/efivars || config_fail 'uefi'
+	[ -z "$(mount -t efivars)" ] && mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null \
+	|| config_fail 'uefi'
 	efivar -l > /dev/null || config_fail 'uefi'
-	[ "$bootloader" = 'grub' ] || config_fail 'bootloader'
+	## bootloader
+	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
+	## partition_table
 	[ "$partition_table" = 'gpt' ] || config_fail 'partition_table'
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
+	## bootloader
+	if [ "$bootloader" = 'grub' ]; then
+		## partition_table
+		[ "$partition_table" = 'mbr' ] || config_fail 'bootloader'
+	else
+		[ "$bootloader" = 'syslinux' ] || config_fail 'bootloader'
+	fi
 fi
-## bootloader
-[[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
-[[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' && "$uefi" = 'no' ]] && config_fail 'bootloader'
 ## swap
 if [ "$swap" = 'yes' ]; then
 	### swap_size
@@ -202,7 +206,6 @@ fi
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
 
-
 # check internet connection
 message 'Checking internet connection..'
 if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
@@ -220,8 +223,8 @@ if [ "$confirm" = 'yes' ]; then
 	echo '----------------------------------------'
 	echo -ne "\033[0m"
 	answer='x'
-	while [ "$answer" != 'yes' ]; do
-		echo -n 'Continue? (yes/no) '
+	while [ "$answer" != 'YES' ]; do
+		echo -n 'Continue? (YES/no) '
 		read answer
 		if [ "$answer" = 'no' ]; then
 			fail 'Script cancelled!'
@@ -478,19 +481,33 @@ arch-chroot /mnt mkinitcpio -p linux
 # bootloader
 if [ "$uefi" = 'yes' ]; then
 	## UEFI
-	### install grub
-	message 'Installing bootloader..'
-	pacstrap /mnt grub efibootmgr dosfstools os-prober
-	# in special cases: efi_target='i386-efi'
-	efi_target='x86_64-efi'
-	arch-chroot /mnt /usr/bin/grub-install --target="$efi_target" --efi-directory=/boot \
-	--bootloader-id=arch_grub --recheck
-	### configure grub
-	message 'Configuring bootloader..'
-	arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+	if [ "$bootloader" = 'grub' ]; then
+		### install grub
+		message 'Installing bootloader..'
+		pacstrap /mnt grub efibootmgr dosfstools os-prober
+		# in special cases: efi_target='i386-efi'
+		efi_target='x86_64-efi'
+		arch-chroot /mnt /usr/bin/grub-install --target="$efi_target" --efi-directory=/boot \
+		--bootloader-id=arch_grub --recheck
+
+		### configure grub
+		message 'Configuring bootloader..'
+		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+	else
+		### install gummiboot
+		message 'Installing bootloader..'
+		pacstrap /mnt gummiboot
+		arch-chroot /mnt gummiboot install
+
+		### configure gummiboot
+		message 'Configuring bootloader..'
+		echo "title	Arch Linux
+linux	/vmlinuz-linux
+initrd	/initramfs-linux.img
+options	root="$dest_disk""$root_part_number" rw" > /mnt/boot/loader/entries/arch.conf
 else
 	## BIOS
-	if [[ "$bootloader" = 'syslinux' ]]; then
+	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
 		message 'Installing bootloader..'
 		pacstrap /mnt syslinux gptfdisk
@@ -612,11 +629,5 @@ echo "Total install time: "$min" minutes"
 echo
 echo 'Tip: Be sure to remove the installation media,'
 echo '     otherwise you will boot back into it.'
-if [ "$encrypt_home" = 'yes' ]; then
-	echo
-	echo 'Tip: You have an encrypted home partition,'
-	echo '     remember to enter your passphrase when'
-	echo '     the system asks for it during boot.'
-fi
 
 exit 0
