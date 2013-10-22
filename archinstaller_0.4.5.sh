@@ -486,22 +486,16 @@ if [ "$uefi" = 'yes' ]; then
 		### install grub
 		message 'Installing bootloader..'
 		pacstrap /mnt grub efibootmgr dosfstools os-prober
-		# in special cases: efi_target='i386-efi'
-		efi_target='x86_64-efi'
-		arch-chroot /mnt /usr/bin/grub-install --target="$efi_target" --efi-directory=/boot \
-		--bootloader-id=arch_grub --recheck
-
-		### configure grub
-		message 'Configuring bootloader..'
-		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+		# in special cases: --target='i386-efi'
+		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; grub-install --target=x86_64-efi \
+		--efi-directory=/boot --bootloader-id=arch_grub --recheck; grub-mkconfig -o /boot/grub/grub.cfg' \
+		| arch-chroot /mnt /bin/bash
 	else
 		### install gummiboot
 		message 'Installing bootloader..'
 		pacstrap /mnt gummiboot
-		arch-chroot /mnt gummiboot install
-
-		### configure gummiboot
-		message 'Configuring bootloader..'
+		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; gummiboot install' \
+		| arch-chroot /mnt /bin/bash
 		echo "title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
