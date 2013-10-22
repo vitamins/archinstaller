@@ -42,6 +42,9 @@ sleep 2
 # check arch linux
 [ -e /etc/arch-release ] || fail 'this script must be executed on arch linux!'
 
+# arch-install-scripts required
+which pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
+
 start_time=$(date +%s)
 
 echo -e "\033[31m"
@@ -81,8 +84,9 @@ fi
 ## uefi
 if [ "$uefi" = 'yes' ]; then
 	### check if install host is booted in uefi mode
-	[ -z "$(mount -t efivars)" ] && mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null \
-	|| config_fail 'uefi'
+	if [ -z "$(mount -t efivarfs)" ]; then
+		mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null || config_fail 'uefi'
+	fi
 	efivar -l > /dev/null || config_fail 'uefi'
 	## bootloader
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
@@ -232,15 +236,12 @@ if [ "$confirm" = 'yes' ]; then
 	done
 fi
 
-# correct system time
-[ -s /usr/bin/ntpd ] && ntpd -gq
-
 # prepare disk
 message 'Preparing disk..'
 umount "$dest_disk"* || :
 wipefs -a "$dest_disk"
-dd if=/dev/zero of="$dest_disk" count=100 bs=512; partprobe "$dest_disk"
-sync; partprobe -s "$dest_disk"; sleep 5
+dd if=/dev/zero of="$dest_disk" count=100 bs=512; blockdev --rereadpt "$dest_disk"
+sync; blockdev --rereadpt "$dest_disk"; sleep 5
 
 # partitioning
 message 'Creating partitions..'
@@ -505,6 +506,7 @@ if [ "$uefi" = 'yes' ]; then
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
 options	root="$dest_disk""$root_part_number" rw" > /mnt/boot/loader/entries/arch.conf
+	fi
 else
 	## BIOS
 	if [ "$bootloader" = 'syslinux' ]; then
