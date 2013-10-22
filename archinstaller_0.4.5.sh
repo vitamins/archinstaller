@@ -377,15 +377,6 @@ if [ "$encrypt_home" = 'yes' ]; then
 fi
 
 # Create and mount filesystems
-## ESP
-if [ "$uefi" = 'yes' ]; then
-	message 'Formatting ESP..'
-	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
-	mkdir -p /mnt/boot
-	message 'Mounting ESP..'
-	mount "$dest_disk""$efi_part_number" /mnt/boot
-fi
-
 ## swap
 if [ "$swap" = 'yes' ]; then
 	message 'Formatting swap..'
@@ -398,6 +389,15 @@ message 'Formatting root..'
 mkfs."$fstype" "$dest_disk""$root_part_number"
 message 'Mounting root..'
 mount -t "$fstype" "$dest_disk""$root_part_number" /mnt
+
+## ESP
+if [ "$uefi" = 'yes' ]; then
+	message 'Formatting ESP..'
+	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
+	mkdir -p /mnt/boot
+	message 'Mounting ESP..'
+	mount "$dest_disk""$efi_part_number" /mnt/boot
+fi
 
 ## home
 message 'Formatting home..'
