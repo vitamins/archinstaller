@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 19.10.2013
-# version	: 0.4.5
+# date		: 23.10.2013
+# version	: 0.4.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
@@ -45,6 +45,9 @@ sleep 2
 # arch-install-scripts required
 which pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
 
+# wget required
+which wget > /dev/null || fail 'this script requires the wget package!'
+
 start_time=$(date +%s)
 
 echo -e "\033[31m"
@@ -81,6 +84,11 @@ if [ "$partition_table" = 'auto' ]; then
 fi
 ## partition_table
 [[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
+if [ "$partition_table" = 'gpt' ]; then
+	which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
+else
+	[ "$partition_table" = 'mbr' ] || config_fail 'partition_table'
+fi
 ## uefi
 if [ "$uefi" = 'yes' ]; then
 	### check if install host is booted in uefi mode
@@ -92,6 +100,7 @@ if [ "$uefi" = 'yes' ]; then
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
 	## partition_table
 	[ "$partition_table" = 'gpt' ] || config_fail 'partition_table'
+	which mkfs.vfat > /dev/null || fail 'this script requires the dosfstools package!'
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
 	## bootloader
@@ -122,6 +131,11 @@ for fs in ${fstypes[@]}; do
         fi
 done
 [ "$correct" = 1 ] || config_fail 'fstype'
+if [ "$fstype" = 'btrfs' ]; then
+	which mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
+elif [ "$fstype" = 'nilfs2' ]; then
+	which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
+fi
 ## encrypt_home
 if [ "$encrypt_home" = 'yes' ]; then
 	### cipher
@@ -507,7 +521,7 @@ else
 		## install syslinux
 		message 'Installing bootloader..'
 		pacstrap /mnt syslinux gptfdisk
-		syslinux-install_update -i -a -m -c /mnt
+		arch-chroot /mnt /usr/bin/syslinux-install_update -i -a -m
 
 		## configure syslinux
 		message 'Configuring bootloader..'
@@ -575,17 +589,6 @@ if [ "$xorg" = 'yes' ]; then
 		esac
 		[ "$graphical_login" = 'yes' ] && \
 		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
-	else
-		if [[ "$add_user" = 'yes' && "$install_desktop_environment" = 'yes' ]]; then
-			case "$desktop_environment" in
-				xfce4)		 echo "exec startxfce4" > /mnt/home/"$user_name"/.xinitrc;;
-				gnome)		 echo "exec gnome-session" > /mnt/home/"$user_name"/.xinitrc;;
-				kde)		 echo "exec startkde" > /mnt/home/"$user_name"/.xinitrc;;
-				cinnamon)	 echo "exec cinnamon-session" > /mnt/home/"$user_name"/.xinitrc;;
-				lxde)		 echo "exec startlxde" > /mnt/home/"$user_name"/.xinitrc;;
-				enlightenment17) echo "exec enlightenment_start" > /mnt/home/"$user_name"/.xinitrc;;
-			esac
-		fi
 	fi
 fi
 
