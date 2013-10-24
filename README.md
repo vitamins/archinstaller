@@ -1,45 +1,62 @@
-# Archinstaller
-
-Install and configure archlinux has never been easier!
-
-You can try it first with a `virtualbox`
+# archinstaller.sh
+This is an automated installation script for arch linux.
+It overwrites the configured hard drive, so make sure to select the right device!
 
 ## Prerequisites
+- You are booted into an arch linux environment
+- An internet connection has been set up
+- The configuration file ari.conf is found in the current working directory
+- The script is run as 'root' user
 
-- A working internet connection
-- Logged in as 'root'
-- Packages: wget, gptfdisk, dosfstools, btrfs-progs, nilfs-utils
+### packages
+The utitlities needed by the script can be installed with the following packages: arch-install-scripts, wget.
+Based on your setup, other packages might be needed: gptfdisk for GPT support, dosfstools for UEFI support, btrfs-progs and nilfs-utils for the respective filesystems.
+All utilities are included on the arch linux iso, which can be downloaded here: https://www.archlinux.org/download/
 
 ## How to get it:
 ### With git
-- get the script: `git clone git://github.com/vitamins/archinstaller .`
+- clone the repository: `git clone git://github.com/vitamins/archinstaller .`
 
 ### Without git:
-- get the script: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
+- download the tarball: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
 
-## How to use:
-- Edit configuration: `nano ./ari.conf`
-- Make script executable: `chmod a+x ./archinstaller.0.4.6.sh`
-- Run script `./archinstaller.0.4.6.sh`
+## Usage
+- Edit the configuration file ari.conf with your favorite editor: `nano ari.conf`
+- Check if dest_disk refers to the correct drive with `lsblk`
+- Make the script executable: `chmod +x ./archinstaller.sh`
+- Run the script: `./archinstaller.0.4.6.sh`
 
-## Archinstaller features:
-- Support GPT/MBR  (GPT is used by default for HDD > 1TiB)
-- Support UEFI system
-- Allows you to choose between GRUB/syslinux
-- Allows you to choose whether to activate a swap partition
-- Allows you to choose how much space to allocate for swap/root partition
-- Allows you to choose which filesystem to use
-- Can encrypt home partition (Allows you to choose chyper)
-- Allows you to choose a preferred mirror for the installation / can be update by the script
-- Allows you to choose a preferred mirror for the installation
-- Can install additional packages after the installation of base system
-- Allows you to choose which keymap/font/locale/timezone to use
-- Set hostname
-- Set hardware clock
+## Features
+- Simple configuration using a single file
+- Linear script that is easily reviewed
+- Can run completely automated
+- Always downloads the latest packages
+- Handles GPT and MBR partition tables
+- Supports UEFI booting with GRUB or gummiboot
+- Allows you to choose between GRUB and syslinux bootloader
+- Configures basic system settings: language,timezone,keymap,font and hostname
+- Optionally create and activate a swap partition
+- Choose how much space to allocate for swap and root partition
+- A home partition is created on the remaining space
+- Decide which filesystems to use for root and home partition
+- Supports encrypting the home partition using LUKS and dm-crypt
+- Allows you to download packages from the preferred mirror
+- Can install additional packages
 - Allows you to set a root password
-- Allows you to add an additional user (non privileged)
-- Allows you to configure network with dhcpcd/netctl/ifplugd
-- Allows you to install Xorg (only vesa driver are included by default)
-- Allows you to install a desktop environment (xfce4/gnome/kde/cinnamon/lxde/enlightenment17)
+- Allows you to add an additional non-root user
+- Allows you to configure the network with dhcpcd, netctl or ifplugd
+- Allows you to install Xorg
+- Officially supported desktop environments: xfce4,gnome,kde,cinnamon,lxde,enlightenment17
 - Allows you to install a display manager
-- Allows you to choose if boot the system in graphical mode
+
+## Passwords
+Passwords are not stored in the script or configuration file. During installation, you are beeing asked for entering the passwords by the underlying program like `passwd`.
+When using encryption, think about a strong passphrase before starting the installation.
+
+## Partition sizes
+The partition sizes are not checked by the script, if they are too big, the script will fail. The root partition requires at least 3 Gigabytes for the base system and a minimal set of applications.
+
+## Help and Bugs
+Please report bugs if you encounter them in the script.
+A thread about it can be found on the arch linux forums:
+https://bbs.archlinux.org/viewtopic.php?id=166112
