@@ -447,6 +447,13 @@ message 'Successfully installed base system.'
 
 # configure system
 message 'Configuring system..'
+
+# enable multilib repo
+if [ `uname -m` == "x86_64" ]; then
+	sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
+	sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
+fi
+
 ## crypttab
 [ "$encrypt_home" = 'yes' ] && echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" \
 				>> /mnt/etc/crypttab
