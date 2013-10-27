@@ -15,7 +15,7 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 
 ## How to get it:
 ### With git
-- clone the repository: `git clone git://github.com/vitamins/archinstaller .`
+- clone the repository: `git clone git://github.com/vitamins/archinstaller`
 
 ### Without git:
 - download the tarball: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
