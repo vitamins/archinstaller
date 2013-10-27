@@ -12,7 +12,7 @@ The utitlities needed by the script can be installed with the following packages
 Based on your setup, other packages might be needed: gptfdisk for GPT support, dosfstools for UEFI support, btrfs-progs and nilfs-utils for the respective filesystems.
 All utilities are included on the arch linux iso, which can be downloaded here: https://www.archlinux.org/download/
 
-## How to get it:
+## Download
 ### With git
 - clone the repository: `git clone git://github.com/vitamins/archinstaller`
 
@@ -57,13 +57,14 @@ Partition sizes are not checked by the script, if they are too big, the script w
 If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:
 - The partitions contain newly created filesystems.
 - The root partition is mounted to /mnt.
-- If using UEFI, the ESP is mounted to /mnt/boot
+- If using UEFI, the ESP is mounted to /mnt/boot.
 - Any other seperate partition like /usr or /var is mounted below the /mnt/ directory.
 - The variables "dest_disk" and "root_partition_number" point to the root partition. The bootloader will be installed on "dest_disk", and requires information about the "root_partition_number" for its configuration.
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
-- When using swap, it is actived manually.
+- When using swap, it is activated manually.
 - "encrypt_home" is set to "no".
+
 Manual partitioning allows you to use this script with more complex setups, such as lvm or RAID. In that case, you have to configure the necessary settings on your own. For example for lvm, it is necessary to add the lvm hook to mkinitcpio.conf and regenerate the initramfs.
 
 ### Language

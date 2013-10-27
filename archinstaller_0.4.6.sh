@@ -5,7 +5,7 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 23.10.2013
+# date		: 27.10.2013
 # version	: 0.4.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
@@ -110,7 +110,7 @@ fi
 ## partition_table
 [[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
 if [ "$partition_table" = 'gpt' ]; then
-	if [ "$manual_part" = 'no' ]; then 
+	if [ "$manual_part" = 'no' ]; then
 		which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
 	fi
 else
@@ -566,9 +566,6 @@ if [ "$xorg" = 'yes' ]; then
 fi
 }
 
-# paranoid shell
-set -e -u
-
 # check root priviledges
 [ "$EUID" = '0' ] || fail 'this script must be executed as root!'
 
@@ -606,6 +603,14 @@ echo -e "\033[0m"
 # check configuration
 check_conf
 
+# load package list
+[ -s ./pkglist.txt ] && packages+=( $( < ./pkglist.txt ) )
+if [ -z "$packages" ]; then
+	install_packages='no'
+else
+	install_packages='yes'
+fi
+
 # check internet connection
 message 'Checking internet connection..'
 if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
@@ -613,6 +618,9 @@ if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; 
 else
 	fail 'please check the network connection!'
 fi
+
+# paranoid shell
+set -e -u
 
 # create partitions & filesystems, mount filesystems
 [ "$manual_part" = 'no' ] && make_part
@@ -660,8 +668,7 @@ fi
 install_xorg
 
 # install additional packages
-[ -s ./pkglist.txt ] && packages+=( $( < ./pkglist.txt ) )
-if [ ! -z "$packages" ]; then
+if [ "$install_packages" = 'yes' ]; then
 	message 'Installing additional packages..'
 	pacstrap /mnt ${packages[@]} || :
 fi
