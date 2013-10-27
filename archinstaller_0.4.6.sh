@@ -36,40 +36,12 @@ echo -e "\033[0m"
 sleep 2
 }
 
-# check root priviledges
-[ "$EUID" = '0' ] || fail 'this script must be executed as root!'
-
-# check arch linux
-[ -e /etc/arch-release ] || fail 'this script must be executed on arch linux!'
-
-# arch-install-scripts required
-which pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
-
-# wget required
-which wget > /dev/null || fail 'this script requires the wget package!'
-
-start_time=$(date +%s)
-
-echo -e "\033[31m"
-echo  '======================================'
-echo  '     Welcome to archinstaller.sh!     '
-echo  '======================================'
-echo -e "\033[0m"
-
-# paranoid shell
-set -e -u
-
-# check if configuration file is here
-[ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
-
-# source configuration file
-source ./ari.conf
-
-# check configuration
+check_conf() {
 message 'Checking configuration..'
 ## confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 ## dest_disk
+[ -z "$dest_disk" ] && config_fail 'dest_disk'
 ### check if dest_disk is a valid block device
 udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || config_fail 'dest_disk'
 # decide for gpt or mbr
@@ -82,10 +54,65 @@ if [ "$partition_table" = 'auto' ]; then
 		partition_table='mbr'
 	fi
 fi
+## manual_part
+if [ "$manual_part" = 'yes' ]; then
+	[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
+	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
+	[ -z "$root_part_number" ] && config_fail 'root_part_number'
+	[ -b "$dest_disk""$root_part_number" ] || config_fail 'root_part_number'
+else
+	[ "$manual_part" = 'no' ] || config_fail 'manual_part'
+	# check /mnt for availability
+	findmnt -nfo TARGET /mnt > /dev/null && fail 'working directory /mnt is blocked by mounted filesystem!'
+	## check dest_disk for mounted filesystems
+	mount | grep "$dest_disk" > /dev/null && fail 'found mounted filesystem on destination disk!'
+	## swap
+	if [ "$swap" = 'yes' ]; then
+		### swap_size
+		[ -z "$swap_size" ] && config_fail 'swap_size'
+	else
+		[ "$swap" = 'no' ] || config_fail 'swap'
+	fi
+	## root_size
+	[ -z "$root_size" ] && config_fail 'root_size'
+	## home_size
+	if [ "$home_size" != 'free' ]; then
+		[ -z "$home_size" ] && config_fail 'home_size'
+	fi
+	## fstpye
+	[ -z "$fstype" ] && config_fail 'fstype'
+	fstypes='btrfs ext2 ext3 ext4 jfs nilfs2 reiserfs xfs'
+	correct=0
+	for fs in ${fstypes[@]}; do
+	        if [ "$fstype" = "$fs" ]; then
+	                correct=1
+	                break
+	        fi
+	done
+	[ "$correct" = 1 ] || config_fail 'fstype'
+	if [ "$fstype" = 'btrfs' ]; then
+		which mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
+	elif [ "$fstype" = 'nilfs2' ]; then
+		which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
+	fi
+	## encrypt_home
+	if [ "$encrypt_home" = 'yes' ]; then
+		### cipher
+		[ -z "$cipher" ] && config_fail 'cipher'
+		### hash_alg
+		[ -z "$hash_alg" ] && config_fail 'hash_alg'
+		### key_size
+		[ -z "$key_size" ] && config_fail 'key_size'
+	else
+		[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
+	fi
+fi
 ## partition_table
 [[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
 if [ "$partition_table" = 'gpt' ]; then
-	which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
+	if [ "$manual_part" = 'no' ]; then 
+		which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
+	fi
 else
 	[ "$partition_table" = 'mbr' ] || config_fail 'partition_table'
 fi
@@ -100,7 +127,9 @@ if [ "$uefi" = 'yes' ]; then
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
 	## partition_table
 	[ "$partition_table" = 'gpt' ] || config_fail 'partition_table'
-	which mkfs.vfat > /dev/null || fail 'this script requires the dosfstools package!'
+	if [ "$manual_part" = 'no' ]; then
+		which mkfs.vfat > /dev/null || fail 'this script requires the dosfstools package!'
+	fi
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
 	## bootloader
@@ -110,42 +139,6 @@ else
 	else
 		[ "$bootloader" = 'syslinux' ] || config_fail 'bootloader'
 	fi
-fi
-## swap
-if [ "$swap" = 'yes' ]; then
-	### swap_size
-	[ -z "$swap_size" ] && config_fail 'swap_size'
-else
-	[ "$swap" = 'no' ] || config_fail 'swap'
-fi
-## root_size
-[ -z "$root_size" ] && config_fail 'root_size'
-## fstpye
-[ -z "$fstype" ] && config_fail 'fstype'
-fstypes='btrfs ext2 ext3 ext4 jfs nilfs2 reiserfs xfs'
-correct=0
-for fs in ${fstypes[@]}; do
-        if [ "$fstype" = "$fs" ]; then
-                correct=1
-                break
-        fi
-done
-[ "$correct" = 1 ] || config_fail 'fstype'
-if [ "$fstype" = 'btrfs' ]; then
-	which mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
-elif [ "$fstype" = 'nilfs2' ]; then
-	which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
-fi
-## encrypt_home
-if [ "$encrypt_home" = 'yes' ]; then
-	### cipher
-	[ -z "$cipher" ] && config_fail 'cipher'
-	### hash_alg
-	[ -z "$hash_alg" ] && config_fail 'hash_alg'
-	### key_size
-	[ -z "$key_size" ] && config_fail 'key_size'
-else
-	[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
 fi
 ## mirror
 [ -z "$mirror" ] && config_fail 'mirror'
@@ -223,15 +216,9 @@ fi
 
 ## no config_fail beyond this point
 message 'Configuration appears to be complete.'
+}
 
-# check internet connection
-message 'Checking internet connection..'
-if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
-	[ -s /tmp/index.html ] || fail 'please check the network connection!'
-else
-	fail 'please check the network connection!'
-fi
-
+make_part() {
 # ask for confirmation
 if [ "$confirm" = 'yes' ]; then
 	echo -e "\033[31m"
@@ -289,13 +276,13 @@ if [ "$partition_table" = 'mbr' ]; then
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
 		echo -e "n\n \
-                  p\n \
-                   "$swap_part_number"\n \
-                    \n \
-                    +"$swap_size"\n \
-                   t\n \
-                  82\n
-                 w" | fdisk "$dest_disk"
+		p\n \
+		"$swap_part_number"\n \
+		\n \
+		+"$swap_size"\n \
+		t\n \
+		82\n
+		w" | fdisk "$dest_disk"
 
 		## wait a moment
 		sleep 1
@@ -303,28 +290,35 @@ if [ "$partition_table" = 'mbr' ]; then
 
 	## root partition
 	echo -e "n\n \
-                  p\n \
-                   "$root_part_number"\n \
-                   \n \
-                  +"$root_size"\n \
-                 w" | fdisk "$dest_disk"
+	p\n \
+	"$root_part_number"\n \
+	\n \
+	+"$root_size"\n \
+	w" | fdisk "$dest_disk"
 
 	## wait a moment
 	sleep 1
 
 	## home partition
-	echo -e "n\n \
-                  p\n \
-                   "$home_part_number"\n \
-                   \n \
-                  \n \
-                 w" | fdisk "$dest_disk"
-
+	if [ "$home_size" = 'free' ]; then
+		echo -e "n\n \
+		p\n \
+		"$home_part_number"\n \
+		\n \
+		\n \
+		w" | fdisk "$dest_disk"
+	else
+		echo -e "n\n \
+		p\n \
+		"$home_part_number"\n \
+		\n \
+		+"$home_size"\n \
+		w" | fdisk "$dest_disk"
+	fi
 ## GPT
 else
 	## EFI system partition
 	if [ "$uefi" = 'yes' ]; then
-		esp_size='512M'
 		# DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
 		echo -e "n\n\
 "$efi_part_number"\n\
@@ -365,14 +359,23 @@ Y" | gdisk "$dest_disk"
 	sleep 1
 
 	## home partition
-	echo -e "n\n\
+		if [ "$home_size" = 'free' ]; then
+			echo -e "n\n\
 "$home_part_number"\n\
 \n\
 \n\
 8300\n\
 w\n\
 Y" | gdisk "$dest_disk"
-
+		else
+			echo -e "n\n\
+"$home_part_number"\n\
+\n\
++"$home_size"\n\
+8300\n\
+w\n\
+Y" | gdisk "$dest_disk"
+		fi
 fi
 
 # encrypt home partition
@@ -426,26 +429,9 @@ else
 	message 'Mounting home..'
 	mount -t "$fstype" "$dest_disk""$home_part_number" /mnt/home
 fi
+}
 
-# mirror
-if [ "$mirror" != 'keep' ]; then
-	message 'Configuring mirrorlist..'
-	echo "Server = "$mirror"" > /etc/pacman.d/mirrorlist
-	wget -q --tries=10 --timeout=5 -O - \
-	'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&ip_version=4&use_mirror_status=on' | \
-	sed 's/#Server/Server/' >> /etc/pacman.d/mirrorlist
-fi
-
-# pacstrap base
-message 'Installing base system..'
-if [ "$base_devel" = 'yes' ]; then
-	pacstrap /mnt base base-devel
-else
-	pacstrap /mnt base
-fi
-message 'Successfully installed base system.'
-
-# configure system
+configure_system() {
 message 'Configuring system..'
 ## crypttab
 [ "$encrypt_home" = 'yes' ] && echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" \
@@ -492,8 +478,9 @@ fi
 
 ##  mkinitcpio
 arch-chroot /mnt mkinitcpio -p linux
+}
 
-# bootloader
+install_bootloader() {
 if [ "$uefi" = 'yes' ]; then
 	## UEFI
 	if [ "$bootloader" = 'grub' ]; then
@@ -549,23 +536,9 @@ LABEL archfallback
 		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
 	fi
 fi
+}
 
-# root password
-if [ "$set_root_password" = 'yes' ]; then
-	message 'Setting password for root user..'
-	arch-chroot /mnt /usr/bin/passwd root
-fi
-
-# add user
-if [ "$add_user" = 'yes' ]; then
-	message 'Adding new user..'
-	arch-chroot /mnt /usr/bin/useradd -m -g users -G wheel -s /bin/bash "$user_name"
-	## set user password
-	message "Setting new password for "$user_name".."
-	arch-chroot /mnt /usr/bin/passwd "$user_name"
-fi
-
-# install xorg
+install_xorg() {
 if [ "$xorg" = 'yes' ]; then
 	pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
 	# install desktop environment
@@ -591,8 +564,103 @@ if [ "$xorg" = 'yes' ]; then
 		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
 	fi
 fi
+}
+
+# paranoid shell
+set -e -u
+
+# check root priviledges
+[ "$EUID" = '0' ] || fail 'this script must be executed as root!'
+
+# check arch linux
+[ -e /etc/arch-release ] || fail 'this script must be executed on arch linux!'
+
+# arch-install-scripts required
+which pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
+
+# wget required
+which wget > /dev/null || fail 'this script requires the wget package!'
+
+# set defaults
+manual_part='no'
+esp_size='512M'
+home_size='free'
+cipher='aes-xts-plain64'
+hash_alg='sha1'
+key_size='256'
+
+# check if configuration file is here
+[ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
+
+# source configuration file
+source ./ari.conf
+
+start_time=$(date +%s)
+
+echo -e "\033[31m"
+echo  '======================================'
+echo  '     Welcome to archinstaller.sh!     '
+echo  '======================================'
+echo -e "\033[0m"
+
+# check configuration
+check_conf
+
+# check internet connection
+message 'Checking internet connection..'
+if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
+	[ -s /tmp/index.html ] || fail 'please check the network connection!'
+else
+	fail 'please check the network connection!'
+fi
+
+# create partitions & filesystems, mount filesystems
+[ "$manual_part" = 'no' ] && make_part
+
+# mirror
+if [ "$mirror" != 'keep' ]; then
+	message 'Configuring mirrorlist..'
+	echo "Server = "$mirror"" > /etc/pacman.d/mirrorlist
+	wget -q --tries=10 --timeout=5 -O - \
+	'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&ip_version=4&use_mirror_status=on' | \
+	sed 's/#Server/Server/' >> /etc/pacman.d/mirrorlist
+fi
+
+# pacstrap base
+message 'Installing base system..'
+if [ "$base_devel" = 'yes' ]; then
+	pacstrap /mnt base base-devel
+else
+	pacstrap /mnt base
+fi
+message 'Successfully installed base system.'
+
+# configure system
+configure_system
+
+# bootloader
+install_bootloader
+
+# root password
+if [ "$set_root_password" = 'yes' ]; then
+	message 'Setting password for root user..'
+	arch-chroot /mnt /usr/bin/passwd root
+fi
+
+# add user
+if [ "$add_user" = 'yes' ]; then
+	message 'Adding new user..'
+	arch-chroot /mnt /usr/bin/useradd -m -g users -G wheel -s /bin/bash "$user_name"
+	## set user password
+	message "Setting new password for "$user_name".."
+	arch-chroot /mnt /usr/bin/passwd "$user_name"
+fi
+
+# install xorg
+install_xorg
 
 # install additional packages
+[ -s ./pkglist.txt ] && packages+=( $( < ./pkglist.txt ) )
 if [ ! -z "$packages" ]; then
 	message 'Installing additional packages..'
 	pacstrap /mnt ${packages[@]} || :
@@ -606,13 +674,16 @@ message 'A copy of ari.conf can be found at /etc/ari.conf.'
 message 'Finalizing..'
 
 ## unmount
-cd /
-[ "$uefi" = 'yes' ] && umount /mnt/boot
-umount /mnt/home
-umount /mnt
-
-## close encrypted volume
-[ "$encrypt_home" = 'yes' ] && cryptsetup close home
+if [ "$manual_part" = 'yes' ]; then
+	message 'Unmount the manually mounted partitions before rebooting!'
+else
+	cd /
+	[ "$uefi" = 'yes' ] && umount /mnt/boot
+	umount /mnt/home
+	umount /mnt
+	## close encrypted volume
+	[ "$encrypt_home" = 'yes' ] && cryptsetup close home
+fi
 
 # report
 finish_time=$(date +%s)
