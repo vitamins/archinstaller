@@ -37,7 +37,7 @@ sleep 2
 }
 
 pacman_install() {
-pacman --color always --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
+pacman --color always --noconfirm --noprogressbar --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 check_conf() {
@@ -481,11 +481,11 @@ arch-chroot /mnt mkinitcpio -p linux
 }
 
 install_bootloader() {
+message 'Installing bootloader..'
 if [ "$uefi" = 'yes' ]; then
 	## UEFI
 	if [ "$bootloader" = 'grub' ]; then
 		### install grub
-		message 'Installing bootloader..'
 		pacman_install grub efibootmgr dosfstools os-prober
 		# in special cases: --target='i386-efi'
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; grub-install --target=x86_64-efi \
@@ -493,7 +493,6 @@ if [ "$uefi" = 'yes' ]; then
 		| arch-chroot /mnt /bin/bash
 	else
 		### install gummiboot
-		message 'Installing bootloader..'
 		pacman_install gummiboot
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; gummiboot install' \
 		| arch-chroot /mnt /bin/bash
@@ -506,12 +505,10 @@ else
 	## BIOS
 	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
-		message 'Installing bootloader..'
 		pacman_install syslinux gptfdisk
 		arch-chroot /mnt /usr/bin/syslinux-install_update -i -a -m
 
 		## configure syslinux
-		message 'Configuring bootloader..'
 		echo "PROMPT 1
 TIMEOUT 50
 DEFAULT arch
@@ -527,12 +524,10 @@ LABEL archfallback
 	INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
 	else
 		## install grub
-		message 'Installing bootloader..'
 		pacman_install grub os-prober
 		arch-chroot /mnt /usr/bin/grub-install $dest_disk
 
 		## configure grub
-		message 'Configuring bootloader..'
 		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
 	fi
 fi
@@ -657,10 +652,9 @@ fi
 
 # add user
 if [ "$add_user" = 'yes' ]; then
-	message 'Adding new user..'
 	arch-chroot /mnt /usr/bin/useradd -m -g users -G wheel -s /bin/bash "$user_name"
 	## set user password
-	message "Setting new password for "$user_name".."
+	message "Setting password for "$user_name".."
 	arch-chroot /mnt /usr/bin/passwd "$user_name"
 fi
 
@@ -676,9 +670,6 @@ fi
 # copy ari.conf
 cp ./ari.conf /mnt/etc/ari.conf
 message 'A copy of ari.conf can be found at /etc/ari.conf.'
-
-# finish
-message 'Finalizing..'
 
 ## unmount
 if [ "$manual_part" = 'yes' ]; then
