@@ -13,12 +13,12 @@
 
 # intro
 dialog --title "Welcome" \
---msgbox "\n This script will help you to install Arch Linux" 6 55 \
+--msgbox "\n Welcome to automatic ari.conf generator!" 6 46
 
 # Confirm
 dialog --title "Confirm" \
 --backtitle "./ari.conf generator" \
---yesno "Ask for confirmation ?" 6 28
+--yesno "Ask for confirmation ?\nDon't ask before initializing disk!" 6 40
 if [ $? = 0 ]; then
 	confirm=yes
 	echo "confirm='yes'" > ./ari.conf
@@ -30,7 +30,7 @@ fi
 # dest disk
 dialog --title "Select Destination" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter destination device here: (eg. /dev/sda)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter destination device here: (eg. /dev/sda)" 8 55 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -47,7 +47,7 @@ esac
 #UEFI
 dialog --title "UEFI" \
 --backtitle "./ari.conf generator" \
---yesno "Enable UEFI support?" 6 25
+--yesno "Enable UEFI support?" 6 24
 if [ $? = 0 ]; then
 	uefi=yes
 	echo "uefi='yes'" >> ./ari.conf
@@ -57,7 +57,7 @@ else
 fi
 
 #Partition Table
-part_table=$(dialog --radiolist "Select Partition Table" 10 61 5 \
+part_table=$(dialog --radiolist "Select Partition Table" 10 50 5 \
         "mbr"  "MBR" off \
         "gpt"  "GPT" off \
 	"auto" "Automatic mode" on 2>&1 >/dev/tty)
@@ -70,20 +70,18 @@ else
 	exit 1
 fi
 
-
-
 #bootloader
 ## UEFI (gummiboot/grub)
 if [ $uefi = 'yes' ]; then
-	bootloader=$(dialog --radiolist "Select Bootloader" 10 61 5 \
+	bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
 	"gummiboot"  "Gummiboot" on \
 	"grub" "GRUB" off 2>&1 >/dev/tty)
 	echo "bootloader='"$bootloader"'" >> ./ari.conf
 else
 	## BIOS & MBR (syslinux/grub)
 	if [ $part_table = "mbr" ]; then
-		bootloader=$(dialog --radiolist "Select Bootloader" 10 61 5 \
-		"gummiboot"  "Gummiboot" on \
+		bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
+		"syslinux"  "syslinux" on \
 		"grub" "GRUB" off 2>&1 >/dev/tty)
 		if [ $? = 0 ]; then
 			echo "bootloader='"$bootloader"'" >> ./ari.conf
@@ -96,14 +94,14 @@ else
 	else
 		## BIOS & GPT (syslinux)
 		if [ $part_table = "gpt" ]; then
-			bootloader=$(dialog --radiolist "Select Bootloader" 10 61 5 \
+			bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
 			"syslinux" "syslinux" on 2>&1 >/dev/tty)
 			if [ $? = 0 ]; then
 				echo "bootloader='"$bootloader"'" >> ./ari.conf
 			else
 				# exit
 				dialog --title "Error" \
-				--msgbox "\n Setup cannot continue without a valid bootloader!" 6 60
+				--msgbox "\n Setup cannot continue without a valid bootloader!" 6 58
 				exit 1
 			fi	
 		fi
@@ -113,16 +111,16 @@ fi
 # swap
 dialog --title "Swap" \
 --backtitle "./ari.conf generator" \
---yesno "Create a swap partition?" 6 25
+--yesno "Create a swap partition?" 6 28
 if [ $? = 0 ]; then
 	swap=yes
 	echo "swap='yes'" >> ./ari.conf
 	# swap size
 	dialog --title "swap size" \
 	--backtitle "./ari.conf generator" \
-	--inputbox "* Add G for a size of GiB, and M for MiB. \n
+	--inputbox " * Add G for a size of GiB, and M for MiB. \n
 	* The home partition spans the remaing space.\n
-	* Partition sizes are not checked, please \n
+	* Partition sizes are not checked, please\n
   	make sure the drive is big enough. (eg. 500M)" 0 0 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
@@ -133,7 +131,7 @@ if [ $? = 0 ]; then
 		*)
 		# exit
 		dialog --title "Error" \
-		--msgbox "\n You need to set a swap size!" 6 48
+		--msgbox "\n You need to set a swap size!" 6 35
 		exit 1
 	esac
 else
@@ -162,7 +160,7 @@ case $retval in
 esac
 
 # filesystem
-fstype=$(dialog --radiolist "Select filesystem type" 10 61 10 \
+fstype=$(dialog --radiolist "Select filesystem type" 16 50 10 \
 "btrfs"  "btrfs" off \
 "ext2"  "ext2" off \
 "ext3"  "ext3" off \
@@ -181,9 +179,9 @@ else
 fi
 
 # encrypt home partition (yes/no)
-dialog --title "UEFI" \
+dialog --title "Encypt Home Partition" \
 --backtitle "./ari.conf generator" \
---yesno "Encrypt home partition?" 6 25
+--yesno "Encrypt home partition?" 6 28
 if [ $? = 0 ]; then
 	encrypt_home=yes
 	echo "encrypt_home='yes'" >> ./ari.conf
@@ -213,7 +211,7 @@ esac
 #base_devel
 dialog --title "base-devel" \
 --backtitle "./ari.conf generator" \
---yesno "Install base devel group?" 6 25
+--yesno "Install base devel group?" 6 30
 if [ $? = 0 ]; then
 	base_devel=yes
 	echo "base_devel='yes'" >> ./ari.conf
@@ -225,8 +223,8 @@ fi
 # additional packages
 dialog --title "Additional Packages" \
 --backtitle "./ari.conf generator" \
---inputbox " Install additional packages ? (separate with space)\n
-To skip this step leave blank." 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Install additional packages ? (separate with space)\n
+To skip this step leave it blank." 10 55 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -240,7 +238,7 @@ esac
 # Language (locale_gen)
 dialog --title "locale_gen" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter language here: (eg. en_US.UTF-8 UTF-8)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter language here: (eg. en_US.UTF-8 UTF-8)" 0 50 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -257,7 +255,7 @@ esac
 # Language (locale_conf)
 dialog --title "locale_conf" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter locale here: (eg. en_US.UTF-8)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter locale here: (eg. en_US.UTF-8)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -274,7 +272,7 @@ esac
 # Keymap
 dialog --title "Select Keymap" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter keymap here: (eg. de-latin1)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter keymap here: (eg. de-latin1)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -291,7 +289,7 @@ esac
 # font
 dialog --title "Select Font" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter font here: (eg. Lat2-Terminus16)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter font here: (eg. Lat2-Terminus16)" 0 45 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -308,7 +306,7 @@ esac
 # timezone
 dialog --title "Select Timezone" \
 --backtitle "./ari.conf generator" \
---inputbox "Enter timezone: (eg. Europe/Berlin)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Enter timezone: (eg. Europe/Berlin)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -323,7 +321,7 @@ case $retval in
 esac
 
 # hardware clock
-hardware_clock=$(dialog --radiolist "Set hardware clock" 10 61 5 \
+hardware_clock=$(dialog --radiolist "Set hardware clock" 10 41 5 \
 "utc"  "utc" On \
 "localtime" "localtime" off 2>&1 >/dev/tty)
 if [ $? = 0 ]; then
@@ -338,7 +336,7 @@ fi
 # hostname
 dialog --title "Select Hostname" \
 --backtitle "./ari.conf generator" \
---inputbox "Select hostname: (eg. myhost)" 0 0 2> /tmp/inputbox.tmp.$$
+--inputbox "Select hostname: (eg. myhost)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
 rm -f /tmp/inputbox.tmp.$$
@@ -355,7 +353,7 @@ esac
 # set root password
 dialog --title "passowrd" \
 --backtitle "./ari.conf generator" \
---yesno "Dow you want to set a root password?" 6 25
+--yesno "Set a root password?" 6 25
 if [ $? = 0 ]; then
 	set_root_password=yes
 	echo "set_root_password='yes'" >> ./ari.conf
@@ -367,14 +365,14 @@ fi
 # add user
 dialog --title "add user" \
 --backtitle "./ari.conf generator" \
---yesno "Add user ?" 6 25
+--yesno "Add user ?" 6 20
 if [ $? = 0 ]; then
   	add_user=yes
   	echo "add_user='yes'" >> ./ari.conf
 	# username
 	dialog --title "Select username" \
 	--backtitle "./ari.conf generator" \
-	--inputbox "Select username: (eg. myuser)" 0 0 2> /tmp/inputbox.tmp.$$
+	--inputbox "Select username: (eg. myuser)" 0 40 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
 	rm -f /tmp/inputbox.tmp.$$
@@ -393,7 +391,7 @@ else
 fi
 
 # wired connection
-wired=$(dialog --radiolist "Select wired connection:" 10 61 10 \
+wired=$(dialog --radiolist "Select wired connection:" 13 30 5 \
 "no"  "no" off \
 "dhcpcd"  "dhcpcd" on \
 "netctl"  "nectl" off \
@@ -410,7 +408,7 @@ fi
 # xorg
 dialog --title "Xorg" \
 --backtitle "./ari.conf generator" \
---yesno "Do you want to install xorg ?" 6 25
+--yesno "Do you want to install xorg ?" 6 35
 if [ $? = 0 ]; then
 	xorg=yes
 	echo "xorg='yes'" >> ./ari.conf
@@ -422,7 +420,7 @@ if [ $? = 0 ]; then
 		install_desktop_environment=yes
 		echo "install_desktop_environment='yes'" >> ./ari.conf
 		# desktop environment
-		desktop_environment=$(dialog --radiolist "Select Desktop Environment" 10 70 5 \
+		desktop_environment=$(dialog --radiolist "Select Desktop Environment" 15 45 6 \
 		"xfce4"  "xfce4" on \
 		"gnome"  "gnome" off \
 		"kde"  "kde" off \
@@ -449,7 +447,7 @@ if [ $? = 0 ]; then
 		install_display_manager=yes
 		echo "install_display_manager='yes'" >> ./ari.conf
 		# display manager
-		display_manager=$(dialog --radiolist "Select a display manager" 10 70 5 \
+		display_manager=$(dialog --radiolist "Select a display manager" 15 30 6 \
 		"gdm"  "gdm" off \
 		"kdm"  "kdm" off \
 		"lxdm"  "lxdm" on \
@@ -478,11 +476,14 @@ if [ $? = 0 ]; then
 		echo "install_display_manager='no'" >> ./ari.conf
 	fi
 else
-  xorg=no
-  echo "xorg='no'" >> ./ari.conf
+	xorg=no
+	echo "xorg='no'" >> ./ari.conf
 fi
 
+# report
+dialog --title "report" --backtitle "ari.conf generator" --textbox ari.conf 35 50
+
 # exit
-dialog --title "Welcome" \
+dialog --title "Completed" \
 --msgbox "\n Setup was complete. Now you can run ./archinstaller_0.4.6.sh" 6 65 
 exit 0
