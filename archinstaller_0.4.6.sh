@@ -5,7 +5,7 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 27.10.2013
+# date		: 29.10.2013
 # version	: 0.4.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
@@ -34,6 +34,10 @@ echo '| archinstaller.sh:'
 echo "| $1"
 echo -e "\033[0m"
 sleep 2
+}
+
+pacman_install() {
+pacman --color always --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 check_conf() {
@@ -454,11 +458,7 @@ echo "FONT="$font"" >> /mnt/etc/vconsole.conf
 ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
 
 ## hardware clock
-if [ "$hardware_clock" = 'localtime' ]; then
-	hwclock --systohc --localtime
-else
-	hwclock --systohc --utc
-fi
+hwclock --systohc --"$hardware_clock"
 
 ## hostname
 echo "$hostname" > /mnt/etc/hostname
@@ -471,7 +471,7 @@ if [ "$wired" != 'no' ]; then
 		dhcpcd)	arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service;;
 		netctl)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
 			arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
-		ifplugd)pacstrap /mnt ifplugd
+		ifplugd)pacman_install ifplugd
 			arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
 	esac
 fi
@@ -486,7 +486,7 @@ if [ "$uefi" = 'yes' ]; then
 	if [ "$bootloader" = 'grub' ]; then
 		### install grub
 		message 'Installing bootloader..'
-		pacstrap /mnt grub efibootmgr dosfstools os-prober
+		pacman_install grub efibootmgr dosfstools os-prober
 		# in special cases: --target='i386-efi'
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; grub-install --target=x86_64-efi \
 		--efi-directory=/boot --bootloader-id=arch_grub --recheck; grub-mkconfig -o /boot/grub/grub.cfg' \
@@ -494,7 +494,7 @@ if [ "$uefi" = 'yes' ]; then
 	else
 		### install gummiboot
 		message 'Installing bootloader..'
-		pacstrap /mnt gummiboot
+		pacman_install gummiboot
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; gummiboot install' \
 		| arch-chroot /mnt /bin/bash
 		echo "title	Arch Linux
@@ -507,7 +507,7 @@ else
 	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
 		message 'Installing bootloader..'
-		pacstrap /mnt syslinux gptfdisk
+		pacman_install syslinux gptfdisk
 		arch-chroot /mnt /usr/bin/syslinux-install_update -i -a -m
 
 		## configure syslinux
@@ -528,7 +528,7 @@ LABEL archfallback
 	else
 		## install grub
 		message 'Installing bootloader..'
-		pacstrap /mnt grub os-prober
+		pacman_install grub os-prober
 		arch-chroot /mnt /usr/bin/grub-install $dest_disk
 
 		## configure grub
@@ -540,25 +540,25 @@ fi
 
 install_xorg() {
 if [ "$xorg" = 'yes' ]; then
-	pacstrap /mnt xorg-server xf86-video-vesa xorg-xinit
+	pacman_install xorg-server xf86-video-vesa xorg-xinit
 	# install desktop environment
 	if [ "$install_desktop_environment" = 'yes' ]; then
 		case "$desktop_environment" in
-			xfce4)		 pacstrap /mnt xfce4 xfce4-goodies;;
-			gnome)		 pacstrap /mnt gnome gnome-extra;;
-			kde)		 pacstrap /mnt kde;;
-			cinnamon)	 pacstrap /mnt cinnamon;;
-			lxde)		 pacstrap /mnt lxde;;
-			enlightenment17) pacstrap /mnt enlightenment17;;
+			xfce4)		 pacman_install xfce4 xfce4-goodies;;
+			gnome)		 pacman_install gnome gnome-extra;;
+			kde)		 pacman_install kde;;
+			cinnamon)	 pacman_install cinnamon;;
+			lxde)		 pacman_install lxde;;
+			enlightenment17) pacman_install enlightenment17;;
 		esac
 	fi
 	# install display manager
 	if [ "$install_display_manager" = 'yes' ]; then
 		case "$display_manager" in
-			gdm)	pacstrap /mnt gdm;;
-			kdm)	pacstrap /mnt kdebase-workspace;;
-			lxdm)	pacstrap /mnt lxdm;;
-			xdm)	pacstrap /mnt xorg-xdm;;
+			gdm)	pacman_install gdm;;
+			kdm)	pacman_install kdebase-workspace;;
+			lxdm)	pacman_install lxdm;;
+			xdm)	pacman_install xorg-xdm;;
 		esac
 		[ "$graphical_login" = 'yes' ] && \
 		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
@@ -589,9 +589,6 @@ key_size='256'
 # check if configuration file is here
 [ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
 
-# source configuration file
-source ./ari.conf
-
 start_time=$(date +%s)
 
 echo -e "\033[31m"
@@ -599,6 +596,9 @@ echo  '======================================'
 echo  '     Welcome to archinstaller.sh!     '
 echo  '======================================'
 echo -e "\033[0m"
+
+# source configuration file
+source ./ari.conf
 
 # check configuration
 check_conf
@@ -670,7 +670,7 @@ install_xorg
 # install additional packages
 if [ "$install_packages" = 'yes' ]; then
 	message 'Installing additional packages..'
-	pacstrap /mnt ${packages[@]} || :
+	pacman_install ${packages[@]} || :
 fi
 
 # copy ari.conf
@@ -703,8 +703,5 @@ echo 'Reboot the computer: # reboot'
 echo '-----------------------------'
 echo -e "\033[0m"
 echo "Total install time: "$min" minutes"
-echo
-echo 'Tip: Be sure to remove the installation media,'
-echo '     otherwise you will boot back into it.'
 
 exit 0
