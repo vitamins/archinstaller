@@ -11,6 +11,17 @@
 # usage          : run ./ari_gen.sh.
 ###############################################################
 
+# functions
+## check for blank input
+check_blank_input(){
+if [ -z $input ]; then
+dialog --title "Blank Input" \
+--msgbox "\n You can't leave it blank!" 6 30
+rm -f /tmp/inputbox.tmp.$$
+exit 1
+fi
+}
+
 # intro
 dialog --title "Welcome" \
 --msgbox "\n Welcome to automatic ari.conf generator!" 6 46
@@ -33,6 +44,7 @@ dialog --title "Select Destination" \
 --inputbox "Enter destination device here: (eg. /dev/sda)" 8 55 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 	0)
@@ -124,6 +136,7 @@ if [ $? = 0 ]; then
   	make sure the drive is big enough. (eg. 500M)" 0 0 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
+	check_blank_input
 	rm -f /tmp/inputbox.tmp.$$
 	case $retval in
 		0)
@@ -191,6 +204,7 @@ if [ $? = 0 ]; then
 	--inputbox "Select cipher: (eg. aes-xts-plain64)" 0 40 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
+	check_blank_input
 	rm -f /tmp/inputbox.tmp.$$
 	case $retval in
 	0)
@@ -207,6 +221,7 @@ if [ $? = 0 ]; then
 	--inputbox "Select hash algorithm: (eg. sha512)" 0 50 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
+	check_blank_input
 	rm -f /tmp/inputbox.tmp.$$
 	case $retval in
 	0)
@@ -223,6 +238,7 @@ if [ $? = 0 ]; then
 	--inputbox "Select key size: (eg. 512)" 0 40 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
+	check_blank_input
 	rm -f /tmp/inputbox.tmp.$$
 	case $retval in
 	0)
@@ -245,6 +261,7 @@ dialog --title "Select Mirror" \
 To use the mirrorlist on the install host, set 'keep'." 0 0 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 	0)
@@ -280,7 +297,7 @@ case $retval in
 0)
 	echo "packages=("$input")">> ./ari.conf;;
 *)
-	echo "packages=("$input")">> ./ari.conf;;
+	echo "packages=()" >> ./ari.conf;;
 esac
 
 # Language (locale_gen)
@@ -289,6 +306,7 @@ dialog --title "locale_gen" \
 --inputbox "Enter language here: (eg. en_US.UTF-8 UTF-8)" 0 50 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -306,6 +324,7 @@ dialog --title "locale_conf" \
 --inputbox "Enter locale here: (eg. en_US.UTF-8)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -323,6 +342,7 @@ dialog --title "Select Keymap" \
 --inputbox "Enter keymap here: (eg. de-latin1)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -340,6 +360,7 @@ dialog --title "Select Font" \
 --inputbox "Enter font here: (eg. Lat2-Terminus16)" 0 45 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -357,6 +378,7 @@ dialog --title "Select Timezone" \
 --inputbox "Enter timezone: (eg. Europe/Berlin)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -387,6 +409,7 @@ dialog --title "Select Hostname" \
 --inputbox "Select hostname: (eg. myhost)" 0 40 2> /tmp/inputbox.tmp.$$
 retval=$?
 input=`cat /tmp/inputbox.tmp.$$`
+check_blank_input
 rm -f /tmp/inputbox.tmp.$$
 case $retval in
 0)
@@ -423,6 +446,7 @@ if [ $? = 0 ]; then
 	--inputbox "Select username: (eg. myuser)" 0 40 2> /tmp/inputbox.tmp.$$
 	retval=$?
 	input=`cat /tmp/inputbox.tmp.$$`
+	check_blank_input
 	rm -f /tmp/inputbox.tmp.$$
 	case $retval in
 	0)
