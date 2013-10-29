@@ -185,6 +185,54 @@ dialog --title "Encypt Home Partition" \
 if [ $? = 0 ]; then
 	encrypt_home=yes
 	echo "encrypt_home='yes'" >> ./ari.conf
+	## cipher
+	dialog --title "Select cipher" \
+	--backtitle "./ari.conf generator" \
+	--inputbox "Select cipher: (eg. aes-xts-plain64)" 0 40 2> /tmp/inputbox.tmp.$$
+	retval=$?
+	input=`cat /tmp/inputbox.tmp.$$`
+	rm -f /tmp/inputbox.tmp.$$
+	case $retval in
+	0)
+		echo "cipher='"$input"'">> ./ari.conf;;
+	*)
+		# exit
+		dialog --title "Error" \
+		--msgbox "\n You need to select a cipher!" 6 55
+		exit 1
+	esac
+	## hash alg
+	dialog --title "Hash Algorithm" \
+	--backtitle "./ari.conf generator" \
+	--inputbox "Select hash algorithm: (eg. sha512)" 0 50 2> /tmp/inputbox.tmp.$$
+	retval=$?
+	input=`cat /tmp/inputbox.tmp.$$`
+	rm -f /tmp/inputbox.tmp.$$
+	case $retval in
+	0)
+		echo "hash_alg='"$input"'">> ./ari.conf;;
+	*)
+		# exit
+		dialog --title "Error" \
+		--msgbox "\n You need to select an algorithm!" 6 55
+		exit 1
+	esac
+	## key_size
+	dialog --title "Select key size" \
+	--backtitle "./ari.conf generator" \
+	--inputbox "Select key size: (eg. 512)" 0 40 2> /tmp/inputbox.tmp.$$
+	retval=$?
+	input=`cat /tmp/inputbox.tmp.$$`
+	rm -f /tmp/inputbox.tmp.$$
+	case $retval in
+	0)
+		echo "key_size='"$input"'">> ./ari.conf;;
+	*)
+		# exit
+		dialog --title "Error" \
+		--msgbox "\n You need to select a key size!" 6 55
+		exit 1
+	esac
 else
 	encrypt_home=no
 	echo "encrypt_home='no'" >> ./ari.conf
@@ -476,8 +524,8 @@ if [ $? = 0 ]; then
 		echo "install_display_manager='no'" >> ./ari.conf
 	fi
 else
-	xorg=no
-	echo "xorg='no'" >> ./ari.conf
+  xorg=no
+  echo "xorg='no'" >> ./ari.conf
 fi
 
 # report
