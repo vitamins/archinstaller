@@ -102,21 +102,34 @@ else
 			dialog --title "Error" \
 			--msgbox "\n Setup cannot continue without a valid bootloader!" 6 58
 			exit 1
-		fi	
-	else
-		## BIOS & GPT (syslinux)
-		if [ $part_table = "gpt" ]; then
-			bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
-			"syslinux" "syslinux" on 2>&1 >/dev/tty)
-			if [ $? = 0 ]; then
-				echo "bootloader='"$bootloader"'" >> ./ari.conf
-			else
-				# exit
-				dialog --title "Error" \
-				--msgbox "\n Setup cannot continue without a valid bootloader!" 6 58
-				exit 1
-			fi	
 		fi
+	## BIOS & GPT (syslinux)
+	elif [ $part_table = "gpt" ]; then
+		bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
+		"syslinux" "syslinux" on 2>&1 >/dev/tty)
+		if [ $? = 0 ]; then
+			echo "bootloader='"$bootloader"'" >> ./ari.conf
+		else
+			# exit
+			dialog --title "Error" \
+			--msgbox "\n Setup cannot continue without a valid bootloader!" 6 58
+			exit 1
+		fi	
+	
+	else
+		## BIOS & Auto
+		if [ $part_table = "auto" ]; then
+                        bootloader=$(dialog --radiolist "Select Bootloader" 10 50 5 \
+                        "syslinux" "syslinux" on 2>&1 >/dev/tty)
+                        if [ $? = 0 ]; then
+                                echo "bootloader='"$bootloader"'" >> ./ari.conf
+                        else
+                                # exit
+                                dialog --title "Error" \
+                                --msgbox "\n Setup cannot continue without a valid bootloader!" 6 58
+                                exit 1
+                        fi
+                fi
 	fi
 fi
 
