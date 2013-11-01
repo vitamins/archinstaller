@@ -5,7 +5,7 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 29.10.2013
+# date		: 1.11.2013
 # version	: 0.4.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
@@ -37,13 +37,15 @@ sleep 2
 }
 
 pacman_install() {
-pacman --color always --noconfirm --noprogressbar --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
+pacman --color always --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 check_conf() {
 message 'Checking configuration..'
 ## confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
+## edit_conf
+[[ "$edit_conf" = 'yes' || "$edit_conf" = 'no' ]] || config_fail 'edit_conf'
 ## dest_disk
 [ -z "$dest_disk" ] && config_fail 'dest_disk'
 ### check if dest_disk is a valid block device
@@ -459,11 +461,14 @@ fi
 configure_system() {
 message 'Configuring system..'
 ## crypttab
-[ "$encrypt_home" = 'yes' ] && echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" \
-				>> /mnt/etc/crypttab
+if [ "$encrypt_home" = 'yes' ]; then
+	echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" >> /mnt/etc/crypttab
+	[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/crypttab
+fi
 
 ## fstab
 genfstab -U -p /mnt > /mnt/etc/fstab
+[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/fstab
 
 ## locale
 [ "$locale_gen" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
@@ -480,6 +485,13 @@ ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
 
 ## hardware clock
 hwclock --systohc --"$hardware_clock"
+
+## kernel modules
+if [ "$configure_modules" = 'yes' ]; then
+	for m in ${modules[@]}; do
+		echo "$m" >> /mnt/etc/modules-load.d/modules.conf
+	done
+fi
 
 ## hostname
 echo "$hostname" > /mnt/etc/hostname
@@ -498,6 +510,7 @@ if [ "$wired" != 'no' ]; then
 fi
 
 ##  mkinitcpio
+[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -p linux
 }
 
@@ -595,12 +608,15 @@ which pacstrap > /dev/null || fail 'this script requires the arch-install-script
 which wget > /dev/null || fail 'this script requires the wget package!'
 
 # set defaults
+edit_conf='no'
 manual_part='no'
 esp_size='512M'
 home_size='free'
 cipher='aes-xts-plain64'
 hash_alg='sha1'
 key_size='256'
+
+[ -z "$EDITOR" ] && EDITOR='/usr/bin/nano'
 
 # check if configuration file is here
 [ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
@@ -625,6 +641,13 @@ if [ -z "$packages" ]; then
 	install_packages='no'
 else
 	install_packages='yes'
+fi
+
+# module list
+if [ -z "$modules" ]; then
+	configure_modules='no'
+else
+	configure_modules='yes'
 fi
 
 # check internet connection
@@ -696,10 +719,7 @@ message 'A copy of ari.conf can be found at /etc/ari.conf.'
 if [ "$manual_part" = 'yes' ]; then
 	message 'Unmount the manually mounted partitions before rebooting!'
 else
-	cd /
-	[ "$uefi" = 'yes' ] && umount /mnt/boot
-	umount /mnt/home
-	umount /mnt
+	umount -R /mnt
 	## close encrypted volume
 	[ "$encrypt_home" = 'yes' ] && cryptsetup close home
 fi
