@@ -112,7 +112,6 @@ else
 	fi
 fi
 ## partition_table
-[[ "$partition_table" = 'gpt' || "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
 if [ "$partition_table" = 'gpt' ]; then
 	if [ "$manual_part" = 'no' ]; then
 		which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
@@ -137,12 +136,7 @@ if [ "$uefi" = 'yes' ]; then
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
 	## bootloader
-	if [ "$bootloader" = 'grub' ]; then
-		## partition_table
-		[ "$partition_table" = 'mbr' ] || config_fail 'bootloader'
-	else
-		[ "$bootloader" = 'syslinux' ] || config_fail 'bootloader'
-	fi
+	[[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
 fi
 ## mirror
 [ -z "$mirror" ] && config_fail 'mirror'
@@ -264,13 +258,26 @@ if [ "$uefi" = 'yes' ]; then
 		home_part_number=3
 	fi
 else
-	if [ "$swap" = 'yes' ]; then
-		swap_part_number=1
-		root_part_number=2
-		home_part_number=3
+	if [ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]; then
+		if [ "$swap" = 'yes' ]; then
+			bios_part_number=1
+			swap_part_number=2
+			root_part_number=3
+			home_part_number=4
+		else
+			bios_part_number=1
+			root_part_number=2
+			home_part_number=3
+		fi
 	else
-		root_part_number=1
-		home_part_number=2
+		if [ "$swap" = 'yes' ]; then
+			swap_part_number=1
+			root_part_number=2
+			home_part_number=3
+		else
+			root_part_number=1
+			home_part_number=2
+		fi
 	fi
 fi
 
@@ -334,6 +341,20 @@ Y" | gdisk "$dest_disk"
 
 		# wait a moment
 		sleep 1
+	else
+		## BIOS boot partition
+		if [ "$bootloader" = 'grub' ]; then
+			echo -e "n\n\
+"$bios_part_number"\n\
+\n\
++1007K\n\
+EF02\n\
+w\n\
+Y" | gdisk "$dest_disk"
+
+			# wait a moment
+			sleep 1
+		fi
 	fi
 
 	## swap partition
@@ -525,7 +546,7 @@ LABEL archfallback
 	else
 		## install grub
 		pacman_install grub os-prober
-		arch-chroot /mnt /usr/bin/grub-install $dest_disk
+		arch-chroot /mnt /usr/bin/grub-install --target=i386-pc --recheck "$dest_disk"
 
 		## configure grub
 		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
