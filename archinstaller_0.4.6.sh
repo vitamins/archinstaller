@@ -258,7 +258,7 @@ if [ "$uefi" = 'yes' ]; then
 		home_part_number=3
 	fi
 else
-	if [ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]; then
+	if [[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]]; then
 		if [ "$swap" = 'yes' ]; then
 			bios_part_number=1
 			swap_part_number=2
