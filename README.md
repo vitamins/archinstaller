@@ -16,7 +16,7 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 ### With git
 - clone the repository: `git clone git://github.com/vitamins/archinstaller`
 
-### Without git:
+### Without git
 - download the tarball: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
 
 ## Usage
@@ -27,7 +27,6 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 
 ## Features
 - Simple configuration using a single file
-- Linear script that is easily reviewed
 - Can run completely automated
 - Always downloads the latest packages
 - Handles GPT and MBR partition tables
