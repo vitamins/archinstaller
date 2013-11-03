@@ -5,15 +5,15 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 1.11.2013
-# version	: 0.4.6
+# date		: 3.11.2013
+# version	: 0.4.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
 
 # functions
 config_fail() {
-echo -e "\033[31m"
+echo -ne "\033[31m"
 echo '| archinstaller.sh:'
 echo "| Error, please check variable $1 !"
 echo -ne "\033[0m"
@@ -21,7 +21,7 @@ exit 1
 }
 
 fail() {
-echo -e "\033[31m"
+echo -ne "\033[31m"
 echo '| archinstaller.sh:'
 echo "| Error, $1"
 echo -ne "\033[0m"
@@ -98,8 +98,10 @@ else
 	[ "$correct" = 1 ] || config_fail 'fstype'
 	if [ "$fstype" = 'btrfs' ]; then
 		which mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
+		packages+=( btrfs-progs )
 	elif [ "$fstype" = 'nilfs2' ]; then
 		which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
+		packages+=( nilfs-utils )
 	fi
 	## encrypt_home
 	if [ "$encrypt_home" = 'yes' ]; then
@@ -608,6 +610,7 @@ which pacstrap > /dev/null || fail 'this script requires the arch-install-script
 which wget > /dev/null || fail 'this script requires the wget package!'
 
 # set defaults
+confirm='yes'
 edit_conf='no'
 manual_part='no'
 esp_size='512M'
@@ -623,11 +626,11 @@ key_size='256'
 
 start_time=$(date +%s)
 
-echo -e "\033[31m"
-echo  '======================================'
+echo -ne "\033[31m"
+echo  '--------------------------------------'
 echo  '     Welcome to archinstaller.sh!     '
-echo  '======================================'
-echo -e "\033[0m"
+echo  '--------------------------------------'
+echo -ne "\033[0m"
 
 # source configuration file
 source ./ari.conf
