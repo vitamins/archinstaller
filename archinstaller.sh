@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 3.11.2013
-# version	: 0.4.7
+# date		: 5.11.2013
+# version	: 0.4.8
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
@@ -243,7 +243,7 @@ fi
 message 'Preparing disk..'
 umount "$dest_disk"* || :
 wipefs -a "$dest_disk"
-dd if=/dev/zero of="$dest_disk" count=100 bs=512; blockdev --rereadpt "$dest_disk"
+dd if=/dev/zero of="$dest_disk" count=17 bs=1K; blockdev --rereadpt "$dest_disk"
 sync; blockdev --rereadpt "$dest_disk"; sleep 5
 
 # partitioning
@@ -413,7 +413,7 @@ if [ "$encrypt_home" = 'yes' ]; then
 	modprobe dm_mod
 	## erase partition with /dev/zero
 	message 'Secure erasure of partition. This may take a while..'
-	dd if=/dev/zero of="$dest_disk""$home_part_number" || :
+	dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
 	message 'You will be asked for the new encryption passphrase soon.'
 	## map physical partition to LUKS
 	cryptsetup -q -y -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
@@ -611,7 +611,7 @@ which wget > /dev/null || fail 'this script requires the wget package!'
 
 # set defaults
 confirm='yes'
-edit_conf='no'
+edit_conf='yes'
 manual_part='no'
 esp_size='512M'
 home_size='free'
