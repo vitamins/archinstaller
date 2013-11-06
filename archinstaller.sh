@@ -2,13 +2,13 @@
 
 ###############################################################
 # title		: archinstaller.sh
-# description	: Automated installation script for arch linux.
+# description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
-# contact	: bbs.archlinux.org/profile.php?id=57887
+# contact	: https://github.com/vitamins/archinstaller
 # date		: 6.11.2013
 # version	: 0.4.9
 # license	: GPLv2
-# usage		: Edit ari.conf and run ./archinstaller.sh.
+# usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
 
 # functions
@@ -529,8 +529,10 @@ if [ "$wired" != 'no' ]; then
 fi
 
 ##  mkinitcpio
-[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/mkinitcpio.conf
-arch-chroot /mnt mkinitcpio -p linux
+if [ "$edit_conf" = 'yes' ]; then
+	"$EDITOR" /mnt/etc/mkinitcpio.conf
+	arch-chroot /mnt /usr/bin/mkinitcpio -p linux
+fi
 }
 
 install_bootloader() {
@@ -592,7 +594,7 @@ fi
 
 install_xorg() {
 if [ "$xorg" = 'yes' ]; then
-	pacman_install xorg-server xf86-video-vesa xorg-xinit
+	pacman_install xorg-server xorg-server-utils xorg-xinit xf86-video-vesa
 	# install desktop environment
 	if [ "$install_desktop_environment" = 'yes' ]; then
 		case "$desktop_environment" in
@@ -700,7 +702,6 @@ set -e -u
 
 # mirror
 if [ "$mirror" != 'keep' ]; then
-	message 'Configuring mirrorlist..'
 	mirror='Server = '"$mirror"'$repo/os/$arch'
 	echo "$mirror" > /etc/pacman.d/mirrorlist
 fi
@@ -712,7 +713,6 @@ if [ "$base_devel" = 'yes' ]; then
 else
 	pacstrap /mnt base
 fi
-message 'Successfully installed base system.'
 
 # configure system
 configure_system
@@ -743,7 +743,7 @@ if [ "$install_packages" = 'yes' ]; then
 	pacman_install ${packages[@]} || :
 fi
 
-## unmount
+# unmount
 if [ "$manual_part" = 'yes' ]; then
 	message 'Unmount the manually mounted partitions before rebooting!'
 else
