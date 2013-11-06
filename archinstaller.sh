@@ -478,7 +478,8 @@ message 'Configuring system..'
 if [ "$manual_part" = 'no' ]; then
 	if [ "$home" = 'yes' ]; then
 		if [ "$encrypt_home" = 'yes' ]; then
-			echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" >> /mnt/etc/crypttab
+			home_part_uuid=$(lsblk -dno UUID "$dest_disk""$home_part_number")
+			echo "home UUID="$home_part_uuid" none luks,timeout=60s" >> /mnt/etc/crypttab
 			[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/crypttab
 		fi
 	fi
@@ -537,21 +538,24 @@ message 'Installing bootloader..'
 if [ "$uefi" = 'yes' ]; then
 	## UEFI
 	if [ "$bootloader" = 'grub' ]; then
-		### install grub
+		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
 		# in special cases: --target='i386-efi'
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; grub-install --target=x86_64-efi \
 		--efi-directory=/boot --bootloader-id=arch_grub --recheck; grub-mkconfig -o /boot/grub/grub.cfg' \
 		| arch-chroot /mnt /bin/bash
 	else
-		### install gummiboot
+		## install gummiboot
 		pacman_install gummiboot
 		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; gummiboot install' \
 		| arch-chroot /mnt /bin/bash
+
+		## configure gummiboot
+		root_part_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_part_number")
 		echo "title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
-options	root="$dest_disk""$root_part_number" rw" > /mnt/boot/loader/entries/arch.conf
+options	root=PARTUUID="$root_part_partuuid" rw" > /mnt/boot/loader/entries/arch.conf
 	fi
 else
 	## BIOS
@@ -561,18 +565,19 @@ else
 		arch-chroot /mnt /usr/bin/syslinux-install_update -i -a -m
 
 		## configure syslinux
+		root_part_uuid=$(lsblk -dno UUID "$dest_disk""$root_part_number")
 		echo "PROMPT 1
 TIMEOUT 50
 DEFAULT arch
 
 LABEL arch
 	LINUX ../vmlinuz-linux
-	APPEND root="$dest_disk""$root_part_number" rw
+	APPEND root=UUID="$root_part_uuid" rw
 	INITRD ../initramfs-linux.img
 
 LABEL archfallback
 	LINUX ../vmlinuz-linux
-	APPEND root="$dest_disk""$root_part_number" rw
+	APPEND root=UUID="$root_part_uuid" rw
 	INITRD ../initramfs-linux-fallback.img" > /mnt/boot/syslinux/syslinux.cfg
 	else
 		## install grub
