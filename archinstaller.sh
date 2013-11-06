@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux.
 # authors	: Dennis Anfossi & teateawhy
 # contact	: bbs.archlinux.org/profile.php?id=57887
-# date		: 5.11.2013
-# version	: 0.4.8
+# date		: 6.11.2013
+# version	: 0.4.9
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh.
 ###############################################################
@@ -62,7 +62,6 @@ if [ "$partition_table" = 'auto' ]; then
 fi
 ## manual_part
 if [ "$manual_part" = 'yes' ]; then
-	[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
 	[ -z "$root_part_number" ] && config_fail 'root_part_number'
 	[ -b "$dest_disk""$root_part_number" ] || config_fail 'root_part_number'
@@ -81,9 +80,25 @@ else
 	fi
 	## root_size
 	[ -z "$root_size" ] && config_fail 'root_size'
-	## home_size
-	if [ "$home_size" != 'free' ]; then
-		[ -z "$home_size" ] && config_fail 'home_size'
+	## home
+	if [ "$home" = 'yes' ]; then
+		## home_size
+		if [ "$home_size" != 'free' ]; then
+			[ -z "$home_size" ] && config_fail 'home_size'
+		fi
+		## encrypt_home
+		if [ "$encrypt_home" = 'yes' ]; then
+			### cipher
+			[ -z "$cipher" ] && config_fail 'cipher'
+			### hash_alg
+			[ -z "$hash_alg" ] && config_fail 'hash_alg'
+			### key_size
+			[ -z "$key_size" ] && config_fail 'key_size'
+		else
+			[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
+		fi
+	else
+		[ "$home" = 'no' ] || config_fail 'home'
 	fi
 	## fstpye
 	[ -z "$fstype" ] && config_fail 'fstype'
@@ -102,17 +117,6 @@ else
 	elif [ "$fstype" = 'nilfs2' ]; then
 		which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
 		packages+=( nilfs-utils )
-	fi
-	## encrypt_home
-	if [ "$encrypt_home" = 'yes' ]; then
-		### cipher
-		[ -z "$cipher" ] && config_fail 'cipher'
-		### hash_alg
-		[ -z "$hash_alg" ] && config_fail 'hash_alg'
-		### key_size
-		[ -z "$key_size" ] && config_fail 'key_size'
-	else
-		[ "$encrypt_home" = 'no' ] || config_fail 'encrypt_home'
 	fi
 fi
 ## partition_table
@@ -243,7 +247,7 @@ fi
 message 'Preparing disk..'
 umount "$dest_disk"* || :
 wipefs -a "$dest_disk"
-dd if=/dev/zero of="$dest_disk" count=17 bs=1K; blockdev --rereadpt "$dest_disk"
+dd bs=1K count=17 iflag=nocache oflag=direct if=/dev/zero of="$dest_disk"; blockdev --rereadpt "$dest_disk"
 sync; blockdev --rereadpt "$dest_disk"; sleep 5
 
 # partitioning
@@ -315,20 +319,22 @@ if [ "$partition_table" = 'mbr' ]; then
 	sleep 1
 
 	## home partition
-	if [ "$home_size" = 'free' ]; then
-		echo -e "n\n \
-		p\n \
-		"$home_part_number"\n \
-		\n \
-		\n \
-		w" | fdisk "$dest_disk"
-	else
-		echo -e "n\n \
-		p\n \
-		"$home_part_number"\n \
-		\n \
-		+"$home_size"\n \
-		w" | fdisk "$dest_disk"
+	if [ "$home" = 'yes' ]; then
+		if [ "$home_size" = 'free' ]; then
+			echo -e "n\n \
+			p\n \
+			"$home_part_number"\n \
+			\n \
+			\n \
+			w" | fdisk "$dest_disk"
+		else
+			echo -e "n\n \
+			p\n \
+			"$home_part_number"\n \
+			\n \
+			+"$home_size"\n \
+			w" | fdisk "$dest_disk"
+		fi
 	fi
 ## GPT
 else
@@ -388,6 +394,7 @@ Y" | gdisk "$dest_disk"
 	sleep 1
 
 	## home partition
+	if [ "$home" = 'yes' ]; then
 		if [ "$home_size" = 'free' ]; then
 			echo -e "n\n\
 "$home_part_number"\n\
@@ -405,21 +412,24 @@ Y" | gdisk "$dest_disk"
 w\n\
 Y" | gdisk "$dest_disk"
 		fi
+	fi
 fi
 
 # encrypt home partition
-if [ "$encrypt_home" = 'yes' ]; then
-	message 'Setting up encryption..'
-	modprobe dm_mod
-	## erase partition with /dev/zero
-	message 'Secure erasure of partition. This may take a while..'
-	dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
-	message 'You will be asked for the new encryption passphrase soon.'
-	## map physical partition to LUKS
-	cryptsetup -q -y -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
-	## open encrypted volume
-	message 'Please enter the encryption passphrase again to open the container.'
-	cryptsetup open "$dest_disk""$home_part_number" home
+if [ "$home" = 'yes' ]; then
+	if [ "$encrypt_home" = 'yes' ]; then
+		message 'Setting up encryption..'
+		modprobe dm_mod
+		## erase partition with /dev/zero
+		message 'Secure erasure of partition. This may take a while..'
+		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
+		message 'You will be asked for the new encryption passphrase soon.'
+		## map physical partition to LUKS
+		cryptsetup -qyc "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
+		## open encrypted volume
+		message 'Please enter the encryption passphrase again to open the container.'
+		cryptsetup open "$dest_disk""$home_part_number" home
+	fi
 fi
 
 # Create and mount filesystems
@@ -446,26 +456,32 @@ if [ "$uefi" = 'yes' ]; then
 fi
 
 ## home
-message 'Formatting home..'
-if [ "$encrypt_home" = 'yes' ]; then
-	mkfs."$fstype" /dev/mapper/home
-	mkdir /mnt/home
-	message 'Mounting home..'
-	mount -t "$fstype" /dev/mapper/home /mnt/home
-else
-	mkfs."$fstype" "$dest_disk""$home_part_number"
-	mkdir /mnt/home
-	message 'Mounting home..'
-	mount -t "$fstype" "$dest_disk""$home_part_number" /mnt/home
+if [ "$home" = 'yes' ]; then
+	message 'Formatting home..'
+	if [ "$encrypt_home" = 'yes' ]; then
+		mkfs."$fstype" /dev/mapper/home
+		mkdir /mnt/home
+		message 'Mounting home..'
+		mount -t "$fstype" /dev/mapper/home /mnt/home
+	else
+		mkfs."$fstype" "$dest_disk""$home_part_number"
+		mkdir /mnt/home
+		message 'Mounting home..'
+		mount -t "$fstype" "$dest_disk""$home_part_number" /mnt/home
+	fi
 fi
 }
 
 configure_system() {
 message 'Configuring system..'
 ## crypttab
-if [ "$encrypt_home" = 'yes' ]; then
-	echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" >> /mnt/etc/crypttab
-	[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/crypttab
+if [ "$manual_part" = 'no' ]; then
+	if [ "$home" = 'yes' ]; then
+		if [ "$encrypt_home" = 'yes' ]; then
+			echo "home "$dest_disk""$home_part_number" none luks,timeout=60s" >> /mnt/etc/crypttab
+			[ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/crypttab
+		fi
+	fi
 fi
 
 ## fstab
@@ -614,6 +630,7 @@ confirm='yes'
 edit_conf='yes'
 manual_part='no'
 esp_size='512M'
+home='yes'
 home_size='free'
 cipher='aes-xts-plain64'
 hash_alg='sha1'
@@ -661,6 +678,15 @@ else
 	fail 'please check the network connection!'
 fi
 
+# check mirror status
+if [ "$mirror" != 'keep' ]; then
+	if wget -q --tries 10 --timeout=5 "$mirror"lastsync -O /tmp/lastsync.txt; then
+		[ -s /tmp/lastsync.txt ] || fail 'please check the mirror status and configuration!'
+	else
+		fail 'please check the mirror status and configuration!'
+	fi
+fi
+
 # paranoid shell
 set -e -u
 
@@ -670,10 +696,8 @@ set -e -u
 # mirror
 if [ "$mirror" != 'keep' ]; then
 	message 'Configuring mirrorlist..'
-	echo "Server = "$mirror"" > /etc/pacman.d/mirrorlist
-	wget -q --tries=10 --timeout=5 -O - \
-	'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&ip_version=4&use_mirror_status=on' | \
-	sed 's/#Server/Server/' >> /etc/pacman.d/mirrorlist
+	mirror='Server = '"$mirror"'$repo/os/$arch'
+	echo "$mirror" > /etc/pacman.d/mirrorlist
 fi
 
 # pacstrap base
@@ -714,17 +738,15 @@ if [ "$install_packages" = 'yes' ]; then
 	pacman_install ${packages[@]} || :
 fi
 
-# copy ari.conf
-cp ./ari.conf /mnt/etc/ari.conf
-message 'A copy of ari.conf can be found at /etc/ari.conf.'
-
 ## unmount
 if [ "$manual_part" = 'yes' ]; then
 	message 'Unmount the manually mounted partitions before rebooting!'
 else
 	umount -R /mnt
-	## close encrypted volume
-	[ "$encrypt_home" = 'yes' ] && cryptsetup close home
+	if [ "$home" = 'yes' ]; then
+		## close encrypted volume
+		[ "$encrypt_home" = 'yes' ] && cryptsetup close home
+	fi
 fi
 
 # report
