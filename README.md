@@ -61,8 +61,6 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 - The variables "dest_disk" and "root_partition_number" point to the root partition. The bootloader will be installed on "dest_disk", and requires information about the "root_partition_number" for its configuration.
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
-- When using swap, it is activated manually.
-- "encrypt_home" is set to "no".
 
 Manual partitioning allows you to use this script with more complex setups, such as lvm or RAID. In that case, you have to configure the necessary settings on your own. For example for lvm, it is necessary to add the lvm hook to mkinitcpio.conf and regenerate the initramfs.
 
