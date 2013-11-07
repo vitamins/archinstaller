@@ -5,7 +5,7 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 6.11.2013
+# date		: 7.11.2013
 # version	: 0.4.9
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
@@ -294,26 +294,26 @@ if [ "$partition_table" = 'mbr' ]; then
 
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
-		echo -e "n\n \
-		p\n \
-		"$swap_part_number"\n \
-		\n \
-		+"$swap_size"\n \
-		t\n \
-		82\n
-		w" | fdisk "$dest_disk"
+		echo -e "n\n\
+p\n\
+"$swap_part_number"\n\
+\n\
++"$swap_size"\n\
+t\n\
+82\n
+w" | fdisk "$dest_disk"
 
 		## wait a moment
 		sleep 1
 	fi
 
 	## root partition
-	echo -e "n\n \
-	p\n \
-	"$root_part_number"\n \
-	\n \
-	+"$root_size"\n \
-	w" | fdisk "$dest_disk"
+	echo -e "n\n\
+p\n\
+"$root_part_number"\n\
+\n\
++"$root_size"\n\
+w" | fdisk "$dest_disk"
 
 	## wait a moment
 	sleep 1
@@ -321,19 +321,19 @@ if [ "$partition_table" = 'mbr' ]; then
 	## home partition
 	if [ "$home" = 'yes' ]; then
 		if [ "$home_size" = 'free' ]; then
-			echo -e "n\n \
-			p\n \
-			"$home_part_number"\n \
-			\n \
-			\n \
-			w" | fdisk "$dest_disk"
+			echo -e "n\n\
+p\n\
+"$home_part_number"\n\
+\n\
+\n\
+w" | fdisk "$dest_disk"
 		else
-			echo -e "n\n \
-			p\n \
-			"$home_part_number"\n \
-			\n \
-			+"$home_size"\n \
-			w" | fdisk "$dest_disk"
+			echo -e "n\n\
+p\n\
+"$home_part_number"\n\
+\n\
++"$home_size"\n\
+w" | fdisk "$dest_disk"
 		fi
 	fi
 ## GPT
