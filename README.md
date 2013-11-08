@@ -20,10 +20,10 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 - download the tarball: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
 
 ## Usage
-- Edit the configuration file ari.conf with your favorite editor: `nano ari.conf`
+- Edit the configuration file ari.conf with your favorite editor: `nano ari.conf` or generate it using `bash ./ari_gen.sh`
 - Check if dest_disk refers to the correct drive with `lsblk`
 - Make the script executable: `chmod +x ./archinstaller.sh`
-- Run the script: `./archinstaller.0.4.6.sh`
+- Run the script: `./archinstaller.sh`
 
 ## Features
 - Simple configuration using a single file
