@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 7.11.2013
-# version	: 0.4.9
+# date		: 11.11.2013
+# version	: 0.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -425,7 +425,7 @@ if [ "$home" = 'yes' ]; then
 		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
 		message 'You will be asked for the new encryption passphrase soon.'
 		## map physical partition to LUKS
-		cryptsetup -qyc "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
+		cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
 		## open encrypted volume
 		message 'Please enter the encryption passphrase again to open the container.'
 		cryptsetup open "$dest_disk""$home_part_number" home
@@ -503,7 +503,7 @@ echo "FONT="$font"" >> /mnt/etc/vconsole.conf
 ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
 
 ## hardware clock
-hwclock --systohc --"$hardware_clock"
+hwclock -w --"$hardware_clock"
 
 ## kernel modules
 if [ "$configure_modules" = 'yes' ]; then
@@ -679,19 +679,21 @@ fi
 
 # check internet connection
 message 'Checking internet connection..'
-if wget -q --tries=10 --timeout=5 http://mirrors.kernel.org -O /tmp/index.html; then
+if wget -q -t 10 -T 5 http://mirrors.kernel.org -O /tmp/index.html; then
 	[ -s /tmp/index.html ] || fail 'please check the network connection!'
 else
 	fail 'please check the network connection!'
 fi
+rm -f /tmp/index.html
 
 # check mirror status
 if [ "$mirror" != 'keep' ]; then
-	if wget -q --tries 10 --timeout=5 "$mirror"lastsync -O /tmp/lastsync.txt; then
+	if wget -q -t 10 -T 5 "$mirror"lastsync -O /tmp/lastsync.txt; then
 		[ -s /tmp/lastsync.txt ] || fail 'please check the mirror status and configuration!'
 	else
 		fail 'please check the mirror status and configuration!'
 	fi
+rm -f /tmp/lastsync.txt
 fi
 
 # paranoid shell
