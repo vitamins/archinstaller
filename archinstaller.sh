@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 11.11.2013
-# version	: 0.5
+# date		: 13.11.2013
+# version	: 0.5.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -45,7 +45,11 @@ message 'Checking configuration..'
 ## confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 ## edit_conf
-[[ "$edit_conf" = 'yes' || "$edit_conf" = 'no' ]] || config_fail 'edit_conf'
+if [ "$edit_conf" = 'yes' ]; then
+	which "$EDITOR" || config_fail 'EDITOR'
+else
+	[ "$edit_conf" = 'no' ] || config_fail 'edit_conf'
+fi
 ## dest_disk
 [ -z "$dest_disk" ] && config_fail 'dest_disk'
 ### check if dest_disk is a valid block device
@@ -507,7 +511,7 @@ hwclock -w --"$hardware_clock"
 
 ## kernel modules
 if [ "$configure_modules" = 'yes' ]; then
-	for m in ${modules[@]}; do
+	for m in ${k_modules[@]}; do
 		echo "$m" >> /mnt/etc/modules-load.d/modules.conf
 	done
 fi
@@ -645,7 +649,7 @@ key_size='256'
 
 [ -z "$EDITOR" ] && EDITOR='/usr/bin/nano'
 
-# check if configuration file is here
+# check if configuration file is in the current working directory
 [ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
 
 start_time=$(date +%s)
@@ -671,7 +675,7 @@ else
 fi
 
 # module list
-if [ -z "$modules" ]; then
+if [ -z "$k_modules" ]; then
 	configure_modules='no'
 else
 	configure_modules='yes'
