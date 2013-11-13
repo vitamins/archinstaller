@@ -20,7 +20,7 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 - download the tarball: `wget --no-check-certificate https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
 
 ## Usage
-- Edit the configuration file ari.conf with your favorite editor: `nano ari.conf` or generate it using `bash ./ari_gen.sh`
+- Open the configuration file ari.conf with your editor: `nano ari.conf` or generate it using `./ari_gen.sh`
 - Check if dest_disk refers to the correct drive with `lsblk`
 - Make the script executable: `chmod +x ./archinstaller.sh`
 - Run the script: `./archinstaller.sh`
@@ -50,7 +50,7 @@ All utilities are included on the arch linux iso, which can be downloaded here: 
 ## Other
 ### Partitioning
 At the beginning, the partition layout is cleared, and a new partition table is created on the storage device.
-Partition sizes are not checked by the script, if they are too big, the script will fail. For accommodating the base system and a minimal set of applications, the root partition should be at least 3 Gigabytes in size. By default, the EFI System Partition "ESP" has a size of 512M, to override this set the variable "esp_size". The home partition takes up remaining space on the storage device, unless you set "home_size". The order of the partitions is from first to last ESP, swap, root, and home.
+Partition sizes are not checked by the script, if they are too big, the script will fail. For accommodating the base system and a minimal set of applications, the root partition should be at least 3 Gigabytes in size. By default, the EFI System Partition "ESP" has a size of 512M, to override this set the variable "esp_size". A seperate home partition is created by default, but this can be avoided by setting home='no'. The home partition takes up remaining space on the storage device, unless you set "home_size". The order of the partitions is from first to last ESP, swap, root, and home.
 
 ### Manual Partitioning
 If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:
@@ -62,10 +62,21 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
 
-Manual partitioning allows you to use this script with more complex setups, such as lvm or RAID. In that case, you have to configure the necessary settings on your own. For example for lvm, it is necessary to add the lvm hook to mkinitcpio.conf and regenerate the initramfs.
+Manual partitioning allows you to use this script with more complex setups, such as lvm or RAID. In that case, you have to configure the necessary settings on your own. For example for lvm, it is necessary to add the lvm hook to mkinitcpio.conf .
+
+### fstab, crypttab and mkinitcpio.conf
+The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf.
+After the configuration file mkinitcpio.conf has been opened in the editor, the initramfs is regenerated.
+If you want to skip this step, set the configuration option check_conf='no'.
 
 ### Language
 The language settings in "locale_gen" and "locale_conf" are not checked by the script. In case you make an configuration error here, locale settings fall back to en_US and the script continues. The same is true for the commandline font.
+
+## Kernel Modules
+For kernel modules to load during boot, add the module's name to the "k_modules" array in the configuration file.
+example:
+`k_modules=( 'dm_mod' kvm coretemp )`
+All needed modules are automatically loaded by udev, so you will rarely need to add something here. Only add modules that you know are missing.
 
 ### Additional Packages
 There are two possibilities to make the script install additional packages. You can simply add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqen > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
