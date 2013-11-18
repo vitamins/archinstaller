@@ -570,5 +570,5 @@ dialog --title "report" --backtitle "ari.conf generator" --textbox ari.conf 35 5
 
 # exit
 dialog --title "Completed" \
---msgbox "\n Setup was complete. Now you can run ./archinstaller_0.4.6.sh" 6 65 
+--msgbox "\n Setup was complete. Now you can run ./archinstaller.sh" 6 65 
 exit 0
