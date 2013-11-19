@@ -177,8 +177,8 @@ case "$network" in
 	dhcpcd)		;;
 	netctl-dhcp)	;;
 	ifplugd)	;;
-	netctl-custom)	[ -z "$netctl_conf_file" ] && config_fail 'netctl_conf_file'
-			[ -s ./"$netctl_conf_file" ] || config_fail 'netctl_conf_file';;
+	netctl-custom)	[ -z "$netctl_profile" ] && config_fail 'netctl_profile'
+			[ -s ./"$netctl_profile" ] || config_fail 'netctl_profile';;
 	*)		config_fail 'network';;
 esac
 ## set_root_password
@@ -532,8 +532,8 @@ if [ "$network" != 'no' ]; then
 				arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
 		ifplugd)	pacman_install ifplugd
 				arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
-		netctl-custom)	cp ./"$netctl_conf_file" /mnt/etc/netctl
-				arch-chroot /mnt /usr/bin/netctl enable "$netctl_conf_file";;
+		netctl-custom)	cp ./"$netctl_profile" /mnt/etc/netctl
+				arch-chroot /mnt /usr/bin/netctl enable "$netctl_profile";;
 	esac
 fi
 

@@ -79,7 +79,7 @@ example:
 All needed modules are automatically loaded by udev, so you will rarely need to add something here. Only add modules that you know are missing.
 
 ### nectl-custom
-It is possible to configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_conf_file='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
+It is possible to configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
 
 ### Additional Packages
 There are two possibilities to make the script install additional packages. You can simply add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqen > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
