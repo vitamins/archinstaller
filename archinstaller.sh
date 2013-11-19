@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 13.11.2013
-# version	: 0.5.1
+# date		: 19.11.2013
+# version	: 0.5.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -46,7 +46,7 @@ message 'Checking configuration..'
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 ## edit_conf
 if [ "$edit_conf" = 'yes' ]; then
-	which "$EDITOR" || config_fail 'EDITOR'
+	which "$EDITOR" > /dev/null || config_fail 'EDITOR'
 else
 	[ "$edit_conf" = 'no' ] || config_fail 'edit_conf'
 fi
@@ -135,7 +135,8 @@ fi
 if [ "$uefi" = 'yes' ]; then
 	### check if install host is booted in uefi mode
 	if [ -z "$(mount -t efivarfs)" ]; then
-		mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null || config_fail 'uefi'
+		mount -t efivarfs efivarfs /sys/firmware/efi/efivars -o nosuid,noexec,nodev > /dev/null || \
+		config_fail 'uefi'
 	fi
 	efivar -l > /dev/null || config_fail 'uefi'
 	## bootloader
@@ -170,13 +171,15 @@ timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || confi
 [[ "$hardware_clock" = 'utc' || "$hardware_clock" = 'localtime' ]] || config_fail 'hardware_clock'
 ## hostname
 [ -z "$hostname" ] && config_fail 'hostname'
-## wired
-case "$wired" in
-	no)	;;
-	dhcpcd)	;;
-	netctl)	;;
-	ifplugd);;
-	*)	config_fail 'wired';;
+## network
+case "$network" in
+	no)		;;
+	dhcpcd)		;;
+	netctl-dhcp)	;;
+	ifplugd)	;;
+	netctl-custom)	[ -z "$netctl_conf_file" ] && config_fail 'netctl_conf_file'
+			[ -s ./"$netctl_conf_file" ] || config_fail 'netctl_conf_file';;
+	*)		config_fail 'network';;
 esac
 ## set_root_password
 [[ "$set_root_password" = 'yes' || "$set_root_password" = 'no' ]] || config_fail 'set_root_password'
@@ -437,6 +440,15 @@ if [ "$home" = 'yes' ]; then
 fi
 
 # Create and mount filesystems
+## ESP
+if [ "$uefi" = 'yes' ]; then
+	message 'Formatting ESP..'
+	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
+	mkdir -p /mnt/boot
+	message 'Mounting ESP..'
+	mount "$dest_disk""$efi_part_number" /mnt/boot
+fi
+
 ## swap
 if [ "$swap" = 'yes' ]; then
 	message 'Formatting swap..'
@@ -449,15 +461,6 @@ message 'Formatting root..'
 mkfs."$fstype" "$dest_disk""$root_part_number"
 message 'Mounting root..'
 mount -t "$fstype" "$dest_disk""$root_part_number" /mnt
-
-## ESP
-if [ "$uefi" = 'yes' ]; then
-	message 'Formatting ESP..'
-	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
-	mkdir -p /mnt/boot
-	message 'Mounting ESP..'
-	mount "$dest_disk""$efi_part_number" /mnt/boot
-fi
 
 ## home
 if [ "$home" = 'yes' ]; then
@@ -519,16 +522,18 @@ fi
 ## hostname
 echo "$hostname" > /mnt/etc/hostname
 
-## wired network service
-if [ "$wired" != 'no' ]; then
+## network service
+if [ "$network" != 'no' ]; then
 	### network interface shall always be named eth0
 	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
-	case "$wired" in
-		dhcpcd)	arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service;;
-		netctl)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
-			arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
-		ifplugd)pacman_install ifplugd
-			arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
+	case "$network" in
+		dhcpcd)		arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service;;
+		netctl-dhcp)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
+				arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
+		ifplugd)	pacman_install ifplugd
+				arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
+		netctl-custom)	cp ./"$netctl_conf_file" /mnt/etc/netctl
+				arch-chroot /mnt /usr/bin/netctl enable "$netctl_conf_file";;
 	esac
 fi
 
@@ -547,14 +552,12 @@ if [ "$uefi" = 'yes' ]; then
 		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
 		# in special cases: --target='i386-efi'
-		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; grub-install --target=x86_64-efi \
-		--efi-directory=/boot --bootloader-id=arch_grub --recheck; grub-mkconfig -o /boot/grub/grub.cfg' \
-		| arch-chroot /mnt /bin/bash
+		echo 'grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=arch_grub --recheck; \
+		grub-mkconfig -o /boot/grub/grub.cfg' | arch-chroot /mnt
 	else
 		## install gummiboot
 		pacman_install gummiboot
-		echo 'mount -t efivarfs efivarfs /sys/firmware/efi/efivars; gummiboot install' \
-		| arch-chroot /mnt /bin/bash
+		arch-chroot /mnt gummiboot install
 
 		## configure gummiboot
 		root_part_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_part_number")
@@ -729,15 +732,15 @@ install_bootloader
 # root password
 if [ "$set_root_password" = 'yes' ]; then
 	message 'Setting password for root user..'
-	arch-chroot /mnt /usr/bin/passwd root
+	passwd -R /mnt root
 fi
 
 # add user
 if [ "$add_user" = 'yes' ]; then
-	arch-chroot /mnt /usr/bin/useradd -m -g users -G wheel -s /bin/bash "$user_name"
+	useradd -R /mnt -m -g users -s /bin/bash "$user_name"
 	## set user password
 	message "Setting password for "$user_name".."
-	arch-chroot /mnt /usr/bin/passwd "$user_name"
+	passwd -R /mnt "$user_name"
 fi
 
 # install xorg
