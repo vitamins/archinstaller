@@ -6,7 +6,7 @@
 # authors        : Dennis Anfossi & teateawhy
 # contact        : bbs.archlinux.org/profile.php?id=57887
 # date           : 29.10.2013
-# version        : 0.4.6
+# version        : 0.5.2
 # license        : GPLv2
 # usage          : run ./ari_gen.sh.
 ###############################################################
@@ -475,14 +475,16 @@ else
 	echo "add_user='no'" >> ./ari.conf
 fi
 
-# wired connection
-wired=$(dialog --radiolist "Select wired connection:" 13 30 5 \
+# network connection
+network=$(dialog --radiolist "Configuriung network:" 13 40 6 \
 "no"  "no" off \
 "dhcpcd"  "dhcpcd" on \
-"netctl"  "nectl" off \
+"netctl"  "netctl" off \
+"netctl-dhcp"  "netctl-dhcp" off \
+"netctl-custom"  "netctl-custom" off \
 "ifplugd" "ifplugd" off 2>&1 >/dev/tty)
 if [ $? = 0 ]; then
-	echo "wired='"$wired"'" >> ./ari.conf
+	echo "network='"$network"'" >> ./ari.conf
 else
 	# exit
 	dialog --title "Error" \
