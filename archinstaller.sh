@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 19.11.2013
-# version	: 0.5.2
+# date		: 23.11.2013
+# version	: 0.5.2.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -627,6 +627,27 @@ if [ "$xorg" = 'yes' ]; then
 fi
 }
 
+if [ "$#" -gt 0 ]; then
+	[ "$#" -gt 1 ] && fail 'too many arguments!'
+	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
+		echo 'archinstaller.sh 0.5.2.1'
+		echo 'Copyright (C) 2013 Dennis Anfossi'
+		echo 'License GPLv2'
+		echo 'This is free software: you are free to change and redistribute it.'
+		echo 'There is NO WARRANTY, to the extent permitted by law.'
+		echo 'Written by Dennis Anfossi & teateawhy.'
+		exit 0
+	elif [[ "$1" = '-h' || "$1" = '--help' ]]; then
+		echo 'Run without arguments to start the installation script.'
+		echo '  -h  --help        display this help and exit'
+		echo '  -v  --version     output version information and exit'
+		echo 'For complete documentation see README.md!'
+		exit 0
+	else
+		fail 'invalid option!'
+	fi
+fi
+
 # check root priviledges
 [ "$EUID" = '0' ] || fail 'this script must be executed as root!'
 
@@ -658,9 +679,9 @@ key_size='256'
 start_time=$(date +%s)
 
 echo -ne "\033[31m"
-echo  '--------------------------------------'
-echo  '     Welcome to archinstaller.sh!     '
-echo  '--------------------------------------'
+echo '--------------------------------------'
+echo '     Welcome to archinstaller.sh!'
+echo '--------------------------------------'
 echo -ne "\033[0m"
 
 # source configuration file
