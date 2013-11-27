@@ -58,7 +58,7 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 - The root partition is mounted to /mnt.
 - If using UEFI, the ESP is mounted to /mnt/boot.
 - Any other seperate partition like /usr or /var is mounted below the /mnt/ directory.
-- The variables "dest_disk" and "root_partition_number" point to the root partition. The bootloader will be installed on "dest_disk", and requires information about the "root_partition_number" for its configuration.
+- The variables "dest_disk" and "root_partition_number" point to the root partition. This information is required for installing the bootloader.
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
 
@@ -82,17 +82,17 @@ All needed modules are automatically loaded by udev, so you will rarely need to 
 It is possible to configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
 
 ### Additional Packages
-There are two possibilities to make the script install additional packages. You can simply add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqen > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
-All of the packages must be part of the core,extra or community repositories. Please notice that it is not possible to install multilib packages with the script. Should one of the packages not be found in the repositories, then this step is skipped.
+There are two possibilities to make the script install additional packages. You can add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqent > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
+All of the packages must be part of the core,extra or community repositories. It is not possible to install packages from the multilib repository by the script. Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed.
 
 ### Passwords
-Passwords are not stored in the script or configuration file. During installation, you are beeing asked for entering the passwords by the underlying program like `passwd`.
+Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation.
 When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
-If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to "yes". Additionally details like cipher, hash algorithm and key size can be configured. The respective variables are "cipher","hash_alg" and "key_size". Run "# cryptsetup benchmark" for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
+If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to "yes". Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
 
 ## Help and Bugs
-Please report bugs if you encounter them in the script.
+Please report bugs should you encounter them in the script.
 A thread about it can be found on the arch linux forums:
 https://bbs.archlinux.org/viewtopic.php?id=166112

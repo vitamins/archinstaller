@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 23.11.2013
-# version	: 0.5.2.1
+# date		: 27.11.2013
+# version	: 0.5.2.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -591,10 +591,8 @@ LABEL archfallback
 	else
 		## install grub
 		pacman_install grub os-prober
-		arch-chroot /mnt /usr/bin/grub-install --target=i386-pc --recheck "$dest_disk"
-
-		## configure grub
-		arch-chroot /mnt /usr/bin/grub-mkconfig -o /boot/grub/grub.cfg
+		echo "grub-install --target=i386-pc --recheck "$dest_disk"; grub-mkconfig -o /boot/grub/grub.cfg" | \
+		arch-chroot /mnt
 	fi
 fi
 }
