@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 27.11.2013
-# version	: 0.5.2.2
+# date		: 30.11.2013
+# version	: 0.5.2.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -37,7 +37,7 @@ sleep 2
 }
 
 pacman_install() {
-pacman --color always --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
+pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 check_conf() {
@@ -500,7 +500,7 @@ genfstab -U -p /mnt > /mnt/etc/fstab
 [ "$locale_gen" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
 echo "$locale_gen" >> /mnt/etc/locale.gen
 echo "LANG="$locale_conf"" > /mnt/etc/locale.conf
-arch-chroot /mnt /usr/bin/locale-gen
+arch-chroot /mnt locale-gen
 
 ## console font and keymap
 echo "KEYMAP="$keymap"" > /mnt/etc/vconsole.conf
@@ -524,23 +524,23 @@ echo "$hostname" > /mnt/etc/hostname
 
 ## network service
 if [ "$network" != 'no' ]; then
-	### network interface shall always be named eth0
+	### fix wired network interface name to eth0
 	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
 	case "$network" in
-		dhcpcd)		arch-chroot /mnt /usr/bin/systemctl enable dhcpcd@eth0.service;;
+		dhcpcd)		arch-chroot /mnt systemctl enable dhcpcd@eth0.service;;
 		netctl-dhcp)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
-				arch-chroot /mnt /usr/bin/netctl enable ethernet_dynamic;;
+				arch-chroot /mnt netctl enable ethernet_dynamic;;
 		ifplugd)	pacman_install ifplugd
-				arch-chroot /mnt /usr/bin/systemctl enable netctl-ifplugd@eth0.service;;
+				arch-chroot /mnt systemctl enable netctl-ifplugd@eth0.service;;
 		netctl-custom)	cp ./"$netctl_profile" /mnt/etc/netctl
-				arch-chroot /mnt /usr/bin/netctl enable "$netctl_profile";;
+				arch-chroot /mnt netctl enable "$netctl_profile";;
 	esac
 fi
 
 ##  mkinitcpio
 if [ "$edit_conf" = 'yes' ]; then
 	"$EDITOR" /mnt/etc/mkinitcpio.conf
-	arch-chroot /mnt /usr/bin/mkinitcpio -p linux
+	arch-chroot /mnt mkinitcpio -p linux
 fi
 }
 
@@ -571,7 +571,7 @@ else
 	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
 		pacman_install syslinux gptfdisk
-		arch-chroot /mnt /usr/bin/syslinux-install_update -i -a -m
+		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
 		root_part_uuid=$(lsblk -dno UUID "$dest_disk""$root_part_number")
@@ -619,8 +619,7 @@ if [ "$xorg" = 'yes' ]; then
 			lxdm)	pacman_install lxdm;;
 			xdm)	pacman_install xorg-xdm;;
 		esac
-		[ "$graphical_login" = 'yes' ] && \
-		arch-chroot /mnt /usr/bin/systemctl enable "$display_manager".service
+		[ "$graphical_login" = 'yes' ] && arch-chroot /mnt systemctl enable "$display_manager".service
 	fi
 fi
 }
@@ -669,7 +668,7 @@ cipher='aes-xts-plain64'
 hash_alg='sha1'
 key_size='256'
 
-[ -z "$EDITOR" ] && EDITOR='/usr/bin/nano'
+[ -z "$EDITOR" ] && EDITOR='nano'
 
 # check if configuration file is in the current working directory
 [ -s ./ari.conf ] || fail "configuration file ari.conf not found in $(pwd) !"
