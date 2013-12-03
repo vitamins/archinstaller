@@ -5,8 +5,8 @@
 # description    : Automated ari.conf generator.
 # authors        : Dennis Anfossi & teateawhy
 # contact        : bbs.archlinux.org/profile.php?id=57887
-# date           : 29.10.2013
-# version        : 0.5.2
+# date           : 03.12.2013
+# version        : 0.5.2.4
 # license        : GPLv2
 # usage          : run ./ari_gen.sh.
 ###############################################################
@@ -285,18 +285,6 @@ case $retval in
 	--msgbox "\n You need to set a mirror or use 'keep' to use host mirror!" 6 60
 	exit 1
 esac
-
-#base_devel
-dialog --title "base-devel" \
---backtitle "./ari.conf generator" \
---yesno "Install base devel group?" 6 30
-if [ $? = 0 ]; then
-	base_devel=yes
-	echo "base_devel='yes'" >> ./ari.conf
-else
-	base_devel=no
-	echo "base_devel='no'" >> ./ari.conf
-fi
 
 # additional packages
 dialog --title "Additional Packages" \
