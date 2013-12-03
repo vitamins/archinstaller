@@ -3,14 +3,19 @@ This is an automated installation script for arch linux.
 
 ## Prerequisites
 - You are booted into an arch linux environment
-- An internet connection has been set up
+- The internet connection has been set up
 - The configuration found in ari.conf is valid
 - The script is run as 'root' user
 
 ### packages
-The utitlities needed by the script can be installed with the following packages: arch-install-scripts, wget.
-Based on your setup, other packages might be needed: gptfdisk for GPT support, dosfstools for UEFI support, btrfs-progs and nilfs-utils for the respective filesystems.
-All utilities are included on the arch linux iso, which can be downloaded here: https://www.archlinux.org/download/
+The utitlities needed by the script can be installed with the following packages:
+- arch-install-scripts version 12-1 (30 Nov 2013) or later
+- wget
+- For UEFI support: dosfstools
+- For GPT support: gptfdisk
+- For btrfs filesystems: btrfs-progs
+- For nilfs filesystems: nilfs-utils
+All utilities are included on archiso, which can be downloaded at https://www.archlinux.org/download/ .
 
 ## Download
 ### With git
