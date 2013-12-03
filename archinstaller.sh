@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 30.11.2013
-# version	: 0.5.2.3
+# date		: 03.12.2013
+# version	: 0.5.2.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -42,29 +42,29 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 
 check_conf() {
 message 'Checking configuration..'
-## confirm
+# confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
-## edit_conf
+# edit_conf
 if [ "$edit_conf" = 'yes' ]; then
 	which "$EDITOR" > /dev/null || config_fail 'EDITOR'
 else
 	[ "$edit_conf" = 'no' ] || config_fail 'edit_conf'
 fi
-## dest_disk
+# dest_disk
 [ -z "$dest_disk" ] && config_fail 'dest_disk'
-### check if dest_disk is a valid block device
+## check if dest_disk is a valid block device
 udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || config_fail 'dest_disk'
 # decide for gpt or mbr
 if [ "$partition_table" = 'auto' ]; then
 	dest_disk_size=$(blockdev --getsize64 "$dest_disk")
-	# check if disk is larger than 1099511627776 bytes ( 1TiB )
+	## check if disk is larger than 1099511627776 bytes ( 1TiB )
 	if [ "$dest_disk_size" -gt 1099511627776 ]; then
 		partition_table='gpt'
 	else
 		partition_table='mbr'
 	fi
 fi
-## manual_part
+# manual_part
 if [ "$manual_part" = 'yes' ]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
 	[ -z "$root_part_number" ] && config_fail 'root_part_number'
@@ -73,18 +73,18 @@ else
 	[ "$manual_part" = 'no' ] || config_fail 'manual_part'
 	# check /mnt for availability
 	findmnt -nfo TARGET /mnt > /dev/null && fail 'working directory /mnt is blocked by mounted filesystem!'
-	## check dest_disk for mounted filesystems
+	# check dest_disk for mounted filesystems
 	mount | grep "$dest_disk" > /dev/null && fail 'found mounted filesystem on destination disk!'
-	## swap
+	# swap
 	if [ "$swap" = 'yes' ]; then
-		### swap_size
+		## swap_size
 		[ -z "$swap_size" ] && config_fail 'swap_size'
 	else
 		[ "$swap" = 'no' ] || config_fail 'swap'
 	fi
-	## root_size
+	# root_size
 	[ -z "$root_size" ] && config_fail 'root_size'
-	## home
+	# home
 	if [ "$home" = 'yes' ]; then
 		## home_size
 		if [ "$home_size" != 'free' ]; then
@@ -104,7 +104,7 @@ else
 	else
 		[ "$home" = 'no' ] || config_fail 'home'
 	fi
-	## fstpye
+	# fstpye
 	[ -z "$fstype" ] && config_fail 'fstype'
 	fstypes='btrfs ext2 ext3 ext4 jfs nilfs2 reiserfs xfs'
 	correct=0
@@ -117,13 +117,11 @@ else
 	[ "$correct" = 1 ] || config_fail 'fstype'
 	if [ "$fstype" = 'btrfs' ]; then
 		which mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
-		packages+=( btrfs-progs )
 	elif [ "$fstype" = 'nilfs2' ]; then
 		which mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
-		packages+=( nilfs-utils )
 	fi
 fi
-## partition_table
+# partition_table
 if [ "$partition_table" = 'gpt' ]; then
 	if [ "$manual_part" = 'no' ]; then
 		which gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
@@ -131,9 +129,9 @@ if [ "$partition_table" = 'gpt' ]; then
 else
 	[ "$partition_table" = 'mbr' ] || config_fail 'partition_table'
 fi
-## uefi
+# uefi
 if [ "$uefi" = 'yes' ]; then
-	### check if install host is booted in uefi mode
+	## check if install host is booted in uefi mode
 	if [ -z "$(mount -t efivarfs)" ]; then
 		mount -t efivarfs efivarfs /sys/firmware/efi/efivars -o nosuid,noexec,nodev > /dev/null || \
 		config_fail 'uefi'
@@ -151,27 +149,25 @@ else
 	## bootloader
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
 fi
-## mirror
+# mirror
 [ -z "$mirror" ] && config_fail 'mirror'
-## base_devel
-[[ "$base_devel" = 'yes' || "$base_devel" = 'no' ]] || config_fail 'base_devel'
-## locale_gen
+# locale_gen
 [ -z "$locale_gen" ] && config_fail 'locale_gen'
-## locale_conf
+# locale_conf
 [ -z "$locale_conf" ] && config_fail 'locale_conf'
-## keymap
+# keymap
 [ -z "$keymap" ] && config_fail 'keymap'
 localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
-## font
+# font
 [ -z "$font" ] && config_fail 'font'
-## timezone
+# timezone
 [ -z "$timezone" ] && config_fail 'timezone'
 timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || config_fail 'timezone'
-## hardware_clock
+# hardware_clock
 [[ "$hardware_clock" = 'utc' || "$hardware_clock" = 'localtime' ]] || config_fail 'hardware_clock'
-## hostname
+# hostname
 [ -z "$hostname" ] && config_fail 'hostname'
-## network
+# network
 case "$network" in
 	no)		;;
 	dhcpcd)		;;
@@ -181,21 +177,21 @@ case "$network" in
 			[ -s ./"$netctl_profile" ] || config_fail 'netctl_profile';;
 	*)		config_fail 'network';;
 esac
-## set_root_password
+# set_root_password
 [[ "$set_root_password" = 'yes' || "$set_root_password" = 'no' ]] || config_fail 'set_root_password'
-## add_user
+# add_user
 if [ "$add_user" = 'yes' ]; then
-	### user_name
+	## user_name
 	[ -z "$user_name" ] && config_fail 'user_name'
 else
 	[ "$add_user" = 'no' ] || config_fail 'user_name'
 fi
 
-## xorg
+# xorg
 if [ "$xorg" = 'yes' ]; then
-	### install_desktop_environment
+	## install_desktop_environment
 	if [ "$install_desktop_environment" = 'yes' ]; then
-		#### desktop_environment
+		### desktop_environment
 		case "$desktop_environment" in
 			xfce4)		;;
 			gnome)		;;
@@ -208,9 +204,9 @@ if [ "$xorg" = 'yes' ]; then
 	else
 		[ "$install_desktop_environment" = 'no' ] || config_fail 'install_desktop_environment'
 	fi
-	### install_display_manager
+	## install_display_manager
 	if [ "$install_display_manager" = 'yes' ]; then
-		#### display_manager
+		### display_manager
 		case "$display_manager" in
 			gdm)	;;
 			kdm)	;;
@@ -227,7 +223,7 @@ else
 	[ "$xorg" = 'no' ] || config_fail 'xorg'
 fi
 
-## no config_fail beyond this point
+# no config_fail beyond this point
 message 'Configuration appears to be complete.'
 }
 
@@ -356,7 +352,7 @@ EF00\n\
 w\n\
 Y" | gdisk "$dest_disk"
 
-		# wait a moment
+		## wait a moment
 		sleep 1
 	else
 		## BIOS boot partition
@@ -369,7 +365,7 @@ EF02\n\
 w\n\
 Y" | gdisk "$dest_disk"
 
-			# wait a moment
+			## wait a moment
 			sleep 1
 		fi
 	fi
@@ -384,7 +380,7 @@ Y" | gdisk "$dest_disk"
 w\n\
 Y" | gdisk "$dest_disk"
 
-		# wait a moment
+		## wait a moment
 		sleep 1
 	fi
 
@@ -397,7 +393,7 @@ Y" | gdisk "$dest_disk"
 w\n\
 Y" | gdisk "$dest_disk"
 
-	# wait a moment
+	## wait a moment
 	sleep 1
 
 	## home partition
@@ -481,7 +477,7 @@ fi
 
 configure_system() {
 message 'Configuring system..'
-## crypttab
+# crypttab
 if [ "$manual_part" = 'no' ]; then
 	if [ "$home" = 'yes' ]; then
 		if [ "$encrypt_home" = 'yes' ]; then
@@ -492,39 +488,39 @@ if [ "$manual_part" = 'no' ]; then
 	fi
 fi
 
-## fstab
+# fstab
 genfstab -U -p /mnt > /mnt/etc/fstab
 [ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/fstab
 
-## locale
+# locale
 [ "$locale_gen" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
 echo "$locale_gen" >> /mnt/etc/locale.gen
 echo "LANG="$locale_conf"" > /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
-## console font and keymap
+# console font and keymap
 echo "KEYMAP="$keymap"" > /mnt/etc/vconsole.conf
 echo "FONT="$font"" >> /mnt/etc/vconsole.conf
 
-## timezone
+# timezone
 ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
 
-## hardware clock
+# hardware clock
 hwclock -w --"$hardware_clock"
 
-## kernel modules
+# kernel modules
 if [ "$configure_modules" = 'yes' ]; then
 	for m in ${k_modules[@]}; do
 		echo "$m" >> /mnt/etc/modules-load.d/modules.conf
 	done
 fi
 
-## hostname
+# hostname
 echo "$hostname" > /mnt/etc/hostname
 
-## network service
+# network service
 if [ "$network" != 'no' ]; then
-	### fix wired network interface name to eth0
+	## fix wired network interface name to eth0
 	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
 	case "$network" in
 		dhcpcd)		arch-chroot /mnt systemctl enable dhcpcd@eth0.service;;
@@ -537,7 +533,7 @@ if [ "$network" != 'no' ]; then
 	esac
 fi
 
-##  mkinitcpio
+#  mkinitcpio
 if [ "$edit_conf" = 'yes' ]; then
 	"$EDITOR" /mnt/etc/mkinitcpio.conf
 	arch-chroot /mnt mkinitcpio -p linux
@@ -547,7 +543,7 @@ fi
 install_bootloader() {
 message 'Installing bootloader..'
 if [ "$uefi" = 'yes' ]; then
-	## UEFI
+	# UEFI
 	if [ "$bootloader" = 'grub' ]; then
 		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
@@ -567,7 +563,7 @@ initrd	/initramfs-linux.img
 options	root=PARTUUID="$root_part_partuuid" rw" > /mnt/boot/loader/entries/arch.conf
 	fi
 else
-	## BIOS
+	# BIOS
 	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
 		pacman_install syslinux gptfdisk
@@ -627,7 +623,7 @@ fi
 if [ "$#" -gt 0 ]; then
 	[ "$#" -gt 1 ] && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller.sh 0.5.2.1'
+		echo 'archinstaller.sh 0.5.2.4'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -735,11 +731,7 @@ fi
 
 # pacstrap base
 message 'Installing base system..'
-if [ "$base_devel" = 'yes' ]; then
-	pacstrap /mnt base base-devel
-else
-	pacstrap /mnt base
-fi
+pacstrap /mnt base
 
 # configure system
 configure_system

@@ -5,8 +5,8 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 19.11.2013
-# version	: 0.5.2
+# date		: 03.12.2013
+# version	: 0.5.2.4
 # license	: GPLv2
 #
 # Read archinstaller.sh for details about how the options are processed.
@@ -26,7 +26,6 @@ cipher='aes-xts-plain64'
 hash_alg='sha512'
 key_size='512'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
-base_devel='yes'
 packages=(vim)
 locale_gen='de_DE.UTF-8 UTF-8'
 locale_conf='de_DE.UTF-8'
