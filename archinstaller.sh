@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 03.12.2013
-# version	: 0.5.2.4
+# date		: 05.12.2013
+# version	: 0.5.2.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -214,8 +214,6 @@ if [ "$xorg" = 'yes' ]; then
 			xdm)	;;
 			*)	config_fail 'display_manager';;
 		esac
-		### graphical login
-		[[ "$graphical_login" = 'yes' || "$graphical_login" = 'no' ]] || config_fail 'graphical_login'
 	else
 		[ "$install_display_manager" = 'no' ] || config_fail 'install_display_manager'
 	fi
@@ -295,6 +293,8 @@ fi
 ## MBR
 if [ "$partition_table" = 'mbr' ]; then
 
+# DO NOT INSERT WHITESPACE INTO ECHO, OTHERWISE GDISK/FDISK WILL FAIL
+
 	## swap partition
 	if [ "$swap" = 'yes' ]; then
 		echo -e "n\n\
@@ -343,7 +343,6 @@ w" | fdisk "$dest_disk"
 else
 	## EFI system partition
 	if [ "$uefi" = 'yes' ]; then
-		# DO NOT INSERT WHITESPACES OR GDISK WILL FAIL
 		echo -e "n\n\
 "$efi_part_number"\n\
 \n\
@@ -615,7 +614,6 @@ if [ "$xorg" = 'yes' ]; then
 			lxdm)	pacman_install lxdm;;
 			xdm)	pacman_install xorg-xdm;;
 		esac
-		[ "$graphical_login" = 'yes' ] && arch-chroot /mnt systemctl enable "$display_manager".service
 	fi
 fi
 }

@@ -25,7 +25,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - download the tarball: `wget https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
 
 ## Usage
-- Open the configuration file ari.conf with your editor: `nano ari.conf` or generate it using `./ari_gen.sh`
+- Open the configuration file ari.conf with your editor: `nano ari.conf`
 - Check if dest_disk refers to the correct drive with `lsblk`
 - Make the script executable: `chmod +x ./archinstaller.sh`
 - Run the script: `./archinstaller.sh`
