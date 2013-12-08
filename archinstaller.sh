@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 05.12.2013
-# version	: 0.5.2.5
+# date		: 08.12.2013
+# version	: 0.5.2.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -160,6 +160,8 @@ fi
 localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
 # font
 [ -z "$font" ] && config_fail 'font'
+setfont -O /tmp/oldfont "$font" -C /dev/tty6 || config_fail 'font'
+setfont /tmp/oldfont -C /dev/tty6
 # timezone
 [ -z "$timezone" ] && config_fail 'timezone'
 timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || config_fail 'timezone'
@@ -547,8 +549,8 @@ if [ "$uefi" = 'yes' ]; then
 		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
 		# in special cases: --target='i386-efi'
-		echo 'grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=arch_grub --recheck; \
-		grub-mkconfig -o /boot/grub/grub.cfg' | arch-chroot /mnt
+		echo 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=x86_64-efi --efi-directory=/boot \
+		--bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
 		## install gummiboot
 		pacman_install gummiboot
@@ -586,7 +588,7 @@ LABEL archfallback
 	else
 		## install grub
 		pacman_install grub os-prober
-		echo "grub-install --target=i386-pc --recheck "$dest_disk"; grub-mkconfig -o /boot/grub/grub.cfg" | \
+		echo "grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=i386-pc --recheck "$dest_disk"" | \
 		arch-chroot /mnt
 	fi
 fi
@@ -621,7 +623,7 @@ fi
 if [ "$#" -gt 0 ]; then
 	[ "$#" -gt 1 ] && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller.sh 0.5.2.4'
+		echo 'archinstaller.sh 0.5.2.6'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'

@@ -75,7 +75,7 @@ After the configuration file mkinitcpio.conf has been opened in the editor, the 
 If you want to skip this step, set the configuration option check_conf='no'.
 
 ### Language
-The language settings in "locale_gen" and "locale_conf" are not checked by the script. In case you make an configuration error here, locale settings fall back to en_US and the script continues. The same is true for the commandline font.
+The language settings in "locale_gen" and "locale_conf" are not checked by the script. In case you make an configuration error here, locale settings fall back to en_US and the script continues.
 
 ### Kernel Modules
 For kernel modules to load during boot, add the module's name to the "k_modules" array in the configuration file.
