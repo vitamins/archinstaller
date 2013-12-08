@@ -15,6 +15,7 @@ The utitlities needed by the script can be installed with the following packages
 - For GPT support: gptfdisk
 - For btrfs filesystems: btrfs-progs
 - For nilfs filesystems: nilfs-utils
+
 All utilities are included on archiso, which can be downloaded at https://www.archlinux.org/download/ .
 
 ## Download
