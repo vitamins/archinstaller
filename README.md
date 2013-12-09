@@ -32,26 +32,21 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Run the script: `./archinstaller.sh`
 
 ## Features
-- Simple configuration using a single file
+- Configured in a single file
 - Can run completely automated
-- Always downloads the latest packages
 - Handles GPT and MBR partition tables
-- Supports UEFI booting with GRUB or gummiboot
-- Allows you to choose between GRUB and syslinux bootloader
-- Configure basic system settings: language,timezone,keymap,font and hostname
-- Optionally create and activate a swap partition
+- Supported bootloaders: GRUB or gummiboot for UEFI, GRUB or syslinux for BIOS
+- Configure basic system settings like language,timezone,keymap and hostname
+- Optionally create a swap partition
 - Choose how much space to allocate for swap and root partition
-- A home partition is created on the remaining space
-- Decide which filesystems to use for root and home partition
-- Supports encrypting the home partition using LUKS and dm-crypt
+- Select filesystems for root and home partition
+- Supports encrypting the home partition with LUKS and dm-crypt
 - Allows you to download packages from the preferred mirror
-- Can install additional packages
 - Allows you to set a root password
-- Allows you to add an additional non-root user
+- Allows you to create an additional user
 - Allows you to configure the network with dhcpcd, netctl or ifplugd
-- Allows you to install Xorg
-- Officially supported desktop environments: xfce4,gnome,kde,cinnamon,lxde,enlightenment17
-- Allows you to install a display manager
+- Allows you to install Xorg and a desktop environment
+- Optionally install additional packages
 
 ## Other
 ### Partitioning
