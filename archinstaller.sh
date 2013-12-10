@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 08.12.2013
-# version	: 0.5.2.6
+# date		: 10.12.2013
+# version	: 0.5.2.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -147,7 +147,17 @@ if [ "$uefi" = 'yes' ]; then
 else
 	[ "$uefi" = 'no' ] || config_fail 'uefi'
 	## bootloader
-	[[ "$bootloader" = 'grub' || "$bootloader" = 'syslinux' ]] || config_fail 'bootloader'
+	if [ "$bootloader" = 'syslinux' ]; then
+		case "$fstype" in
+			ext2)	;;
+			ext3)	;;
+			ext4)	;;
+			btrfs)	;;
+			*) 	config_fail 'bootloader';;
+		esac
+	else
+		[ "$bootloader" = 'grub' ] || config_fail 'bootloader'
+	fi
 fi
 # mirror
 [ -z "$mirror" ] && config_fail 'mirror'
@@ -162,6 +172,7 @@ localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail
 [ -z "$font" ] && config_fail 'font'
 setfont -O /tmp/oldfont "$font" -C /dev/tty6 || config_fail 'font'
 setfont /tmp/oldfont -C /dev/tty6
+rm -f /tmp/oldfont
 # timezone
 [ -z "$timezone" ] && config_fail 'timezone'
 timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || config_fail 'timezone'
@@ -567,7 +578,11 @@ else
 	# BIOS
 	if [ "$bootloader" = 'syslinux' ]; then
 		## install syslinux
-		pacman_install syslinux gptfdisk
+		if [ "$partition_table" = 'gpt' ]; then
+			pacman_install syslinux gptfdisk
+		else
+			pacman_install syslinux
+		fi
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
