@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 10.12.2013
-# version	: 0.5.2.7
+# date		: 12.12.2013
+# version	: 0.5.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller.sh
 ###############################################################
@@ -41,7 +41,9 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 check_conf() {
-message 'Checking configuration..'
+echo -e "\033[31m"
+echo '| archinstaller.sh:'
+echo -n '| Checking configuration..'
 # confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 # edit_conf
@@ -180,6 +182,7 @@ timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || confi
 [[ "$hardware_clock" = 'utc' || "$hardware_clock" = 'localtime' ]] || config_fail 'hardware_clock'
 # hostname
 [ -z "$hostname" ] && config_fail 'hostname'
+[[ "$hostname" =~ ( |\') ]] && config_fail 'hostname'
 # network
 case "$network" in
 	no)		;;
@@ -196,8 +199,9 @@ esac
 if [ "$add_user" = 'yes' ]; then
 	## user_name
 	[ -z "$user_name" ] && config_fail 'user_name'
+	[[ "$user_name" =~ ( |\') ]] && config_fail 'user_name'
 else
-	[ "$add_user" = 'no' ] || config_fail 'user_name'
+	[ "$add_user" = 'no' ] || config_fail 'add_user'
 fi
 
 # xorg
@@ -235,7 +239,9 @@ else
 fi
 
 # no config_fail beyond this point
-message 'Configuration appears to be complete.'
+echo -en "\033[32m"
+echo -n ' OK.'
+echo -e "\033[0m"
 }
 
 make_part() {
@@ -244,7 +250,7 @@ if [ "$confirm" = 'yes' ]; then
 	echo -e "\033[31m"
 	echo '----------------------------------------'
 	echo 'The destination drive will be formatted.'
-	echo "All data on "$dest_disk" will be lost!"
+	echo "   All data on "$dest_disk" will be lost!"
 	echo '----------------------------------------'
 	echo -ne "\033[0m"
 	answer='x'
@@ -454,7 +460,7 @@ if [ "$uefi" = 'yes' ]; then
 	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
-	mount "$dest_disk""$efi_part_number" /mnt/boot
+	mount -t vfat "$dest_disk""$efi_part_number" /mnt/boot
 fi
 
 ## swap
@@ -559,7 +565,7 @@ if [ "$uefi" = 'yes' ]; then
 	if [ "$bootloader" = 'grub' ]; then
 		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
-		# in special cases: --target='i386-efi'
+		# in special cases, change to: --target='i386-efi'
 		echo 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=x86_64-efi --efi-directory=/boot \
 		--bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
@@ -568,6 +574,8 @@ if [ "$uefi" = 'yes' ]; then
 		arch-chroot /mnt gummiboot install
 
 		## configure gummiboot
+		echo "default arch
+timeout 5" > /mnt/boot/loader/loader.conf
 		root_part_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_part_number")
 		echo "title	Arch Linux
 linux	/vmlinuz-linux
@@ -638,7 +646,7 @@ fi
 if [ "$#" -gt 0 ]; then
 	[ "$#" -gt 1 ] && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller.sh 0.5.2.6'
+		echo 'archinstaller.sh 0.5.3'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -661,6 +669,12 @@ fi
 
 # check arch linux
 [ -e /etc/arch-release ] || fail 'this script must be executed on arch linux!'
+
+# check apple mac
+if [[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Inc.' ]] || \
+[[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Computer, Inc.' ]]; then
+		fail 'this script does not support Apple Mac computers, due to non-compliant firmware!'
+fi
 
 # arch-install-scripts required
 which pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
@@ -687,9 +701,9 @@ key_size='256'
 start_time=$(date +%s)
 
 echo -ne "\033[31m"
-echo '--------------------------------------'
-echo '     Welcome to archinstaller.sh!'
-echo '--------------------------------------'
+echo '----------------------------------------'
+echo '      Welcome to archinstaller.sh!'
+echo '----------------------------------------'
 echo -ne "\033[0m"
 
 # source configuration file
@@ -714,13 +728,18 @@ else
 fi
 
 # check internet connection
-message 'Checking internet connection..'
+echo -e "\033[31m"
+echo '| archinstaller.sh:'
+echo -n '| Checking internet connection..'
 if wget -q -t 10 -T 5 http://mirrors.kernel.org -O /tmp/index.html; then
 	[ -s /tmp/index.html ] || fail 'please check the network connection!'
 else
 	fail 'please check the network connection!'
 fi
 rm -f /tmp/index.html
+echo -en "\033[32m"
+echo -n ' OK.'
+echo -e "\033[0m"
 
 # check mirror status
 if [ "$mirror" != 'keep' ]; then
@@ -793,10 +812,10 @@ finish_time=$(date +%s)
 min=$(( $((finish_time - start_time)) /60 ))
 
 echo -e "\033[31m"
-echo '-----------------------------'
-echo '   Installation completed!   '
-echo 'Reboot the computer: # reboot'
-echo '-----------------------------'
+echo '----------------------------------------'
+echo '        Installation completed!'
+echo '     Reboot the computer: # reboot'
+echo '----------------------------------------'
 echo -e "\033[0m"
 echo "Total install time: "$min" minutes"
 
