@@ -13,7 +13,7 @@
 
 # functions
 config_fail() {
-echo -e "\033[31m"
+echo -ne "\033[31m"
 echo "| Error, please check variable $1 !"
 echo -ne "\033[0m"
 exit 1
@@ -41,8 +41,8 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 
 check_conf() {
 echo -e "\033[31m"
-echo '| archinstaller.sh:'
-echo -n '| Checking configuration..'
+echo '| Checking configuration..'
+echo -ne "\033[0m"
 # confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 # edit_conf
@@ -239,7 +239,7 @@ fi
 
 # no config_fail beyond this point
 echo -en "\033[32m"
-echo -n ' OK.'
+echo '| OK.'
 echo -e "\033[0m"
 }
 
@@ -727,18 +727,18 @@ else
 fi
 
 # check internet connection
-echo -e "\033[31m"
+echo -ne "\033[31m"
 echo '| archinstaller.sh:'
-echo -n '| Checking internet connection..'
+echo '| Checking internet connection..'
 if wget -q -t 10 -T 5 http://mirrors.kernel.org -O /tmp/index.html; then
 	[ -s /tmp/index.html ] || fail 'please check the network connection!'
 else
 	fail 'please check the network connection!'
 fi
 rm -f /tmp/index.html
-echo -en "\033[32m"
-echo -n ' OK.'
-echo -e "\033[0m"
+echo -ne "\033[32m"
+echo '| OK.'
+echo -ne "\033[0m"
 
 # check mirror status
 if [ "$mirror" != 'keep' ]; then
