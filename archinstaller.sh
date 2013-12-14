@@ -13,8 +13,7 @@
 
 # functions
 config_fail() {
-echo -ne "\033[31m"
-echo '| archinstaller.sh:'
+echo -e "\033[31m"
 echo "| Error, please check variable $1 !"
 echo -ne "\033[0m"
 exit 1
