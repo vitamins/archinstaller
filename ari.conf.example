@@ -1,15 +1,15 @@
 #
-# Configuration file for archinstaller.sh
+# Configuration file for archinstaller
 # 
-# Copy it to the same directory as archinstaller.sh
+# Copy it to the same directory as archinstaller.
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 12.12.2013
-# version	: 0.5.3
+# date		: 15.12.2013
+# version	: 0.5.4
 # license	: GPLv2
 #
-# Read archinstaller.sh for details about how the options are processed.
+# See README for additional options, and read the script for details about how options are processed.
 #
 # EXAMPLE CONFIGURATION ONLY
 #
@@ -26,7 +26,7 @@ cipher='aes-xts-plain64'
 hash_alg='sha512'
 key_size='512'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
-packages=(vim)
+packages=(vim zsh)
 locale_gen='de_DE.UTF-8 UTF-8'
 locale_conf='de_DE.UTF-8'
 keymap='de-latin1'
