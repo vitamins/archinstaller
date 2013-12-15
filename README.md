@@ -1,4 +1,4 @@
-# archinstaller.sh
+# archinstaller
 This is an automated installation script for arch linux.
 
 ## Prerequisites
@@ -28,8 +28,8 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 ## Usage
 - Open the configuration file ari.conf with your editor: `nano ari.conf`
 - Check if dest_disk refers to the correct drive with `lsblk`
-- Make the script executable: `chmod +x ./archinstaller.sh`
-- Run the script: `./archinstaller.sh`
+- Make the script executable: `chmod +x ./archinstaller`
+- Run the script: `./archinstaller`
 
 ## Features
 - Configured in a single file
