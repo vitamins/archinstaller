@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 15.12.2013
-# version	: 0.5.4
+# date		: 17.12.2013
+# version	: 0.5.4.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -162,10 +162,9 @@ else
 fi
 # mirror
 [ -z "$mirror" ] && config_fail 'mirror'
-# locale_gen
-[ -z "$locale_gen" ] && config_fail 'locale_gen'
-# locale_conf
-[ -z "$locale_conf" ] && config_fail 'locale_conf'
+# locale
+[ -z "$locale" ] && config_fail 'locale'
+[[ "$locale" =~ ( |\') ]] || config_fail 'locale'
 # keymap
 [ -z "$keymap" ] && config_fail 'keymap'
 localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
@@ -510,9 +509,9 @@ genfstab -U -p /mnt > /mnt/etc/fstab
 [ "$edit_conf" = 'yes' ] && "$EDITOR" /mnt/etc/fstab
 
 # locale
-[ "$locale_gen" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
-echo "$locale_gen" >> /mnt/etc/locale.gen
-echo "LANG="$locale_conf"" > /mnt/etc/locale.conf
+[ "$locale" = 'en_US.UTF-8 UTF-8' ] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
+echo "$locale" >> /mnt/etc/locale.gen
+echo "LANG=${locale%% *}" > /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
 # console font and keymap

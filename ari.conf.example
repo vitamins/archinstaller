@@ -5,8 +5,8 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 15.12.2013
-# version	: 0.5.4
+# date		: 17.12.2013
+# version	: 0.5.4.1
 # license	: GPLv2
 #
 # See README for additional options, and read the script for details about how options are processed.
@@ -27,8 +27,7 @@ hash_alg='sha512'
 key_size='512'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
 packages=(vim zsh)
-locale_gen='de_DE.UTF-8 UTF-8'
-locale_conf='de_DE.UTF-8'
+locale='de_DE.UTF-8 UTF-8'
 keymap='de-latin1'
 font='Lat2-Terminus16'
 timezone='Europe/Berlin'
