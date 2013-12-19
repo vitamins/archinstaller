@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 18.12.2013
-# version	: 0.5.4.2
+# date		: 19.12.2013
+# version	: 0.5.4.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -70,7 +70,7 @@ if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
 	[[ -z "$root_part_number" ]] && config_fail 'root_part_number'
 	[[ -b "$dest_disk""$root_part_number" ]] || config_fail 'root_part_number'
-	encrypt_home=no
+	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
 	# check /mnt for availability
@@ -108,7 +108,7 @@ else
 		fi
 	else
 		[[ "$home" = 'no' ]] || config_fail 'home'
-		encrypt_home=no
+		encrypt_home='no'
 	fi
 	# fstpye
 	[[ -z "$fstype" ]] && config_fail 'fstype'
@@ -175,9 +175,6 @@ fi
 localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
 # font
 [[ -z "$font" ]] && config_fail 'font'
-setfont -O /tmp/oldfont "$font" -C /dev/tty6 || config_fail 'font'
-setfont /tmp/oldfont -C /dev/tty6
-rm -f /tmp/oldfont
 # timezone
 [[ -z "$timezone" ]] && config_fail 'timezone'
 timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || config_fail 'timezone'
@@ -444,13 +441,13 @@ if [[ "$encrypt_home" = 'yes' ]]; then
 	message 'Setting up encryption..'
 	modprobe dm_mod
 	## erase partition with /dev/zero
-	message 'Secure erasure of partition. This may take a while..'
+	message 'Secure erasure of partition..'
 	dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
-	message 'You will be asked for the new encryption passphrase soon.'
+	message 'Please enter a new encryption passphrase.'
 	## map physical partition to LUKS
 	cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat "$dest_disk""$home_part_number"
 	## open encrypted volume
-	message 'Please enter the encryption passphrase again to open the container.'
+	message 'To unlock the container, enter the passphrase again.'
 	cryptsetup open "$dest_disk""$home_part_number" home
 fi
 
@@ -662,33 +659,33 @@ if (( "$#" > 0 )); then
 		echo 'Written by Dennis Anfossi & teateawhy.'
 		exit 0
 	elif [[ "$1" = '-h' || "$1" = '--help' ]]; then
-		echo 'Run without arguments to start the installation script.'
+		echo 'Run without arguments to start the installer.'
 		echo '  -h  --help        display this help and exit'
 		echo '  -v  --version     output version information and exit'
 		echo 'For complete documentation see README.md!'
 		exit 0
 	else
-		fail 'invalid option!'
+		fail "invalid option $1"
 	fi
 fi
 
 # check root priviledges
-[[ "$EUID" = '0' ]] || fail 'this script must be executed as root!'
+[[ "$EUID" = '0' ]] || fail 'please run as root user!'
 
 # check arch linux
-[[ -e /etc/arch-release ]] || fail 'this script must be executed on arch linux!'
+[[ -e /etc/arch-release ]] || fail 'please run on arch linux!'
 
 # check apple mac
 if [[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Inc.' ]] || \
 [[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Computer, Inc.' ]]; then
-		fail 'this script does not support Apple Mac computers, due to non-compliant firmware!'
+		fail 'Apple Mac computers are not supported, due to non-compliant firmware!'
 fi
 
 # arch-install-scripts required
-type pacstrap > /dev/null || fail 'this script requires the arch-install-scripts package!'
+type pacstrap > /dev/null || fail 'please install the arch-install-scripts package!'
 
 # wget required
-type wget > /dev/null || fail 'this script requires the wget package!'
+type wget > /dev/null || fail 'please install the wget package!'
 
 # set defaults
 confirm='yes'
@@ -705,8 +702,6 @@ key_size='256'
 
 # check if configuration file is in the current working directory
 [[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd) !"
-
-start_time=$(date +%s)
 
 echo -ne "\033[31m"
 echo '----------------------------------------'
@@ -813,15 +808,11 @@ else
 fi
 
 # report
-finish_time=$(date +%s)
-min=$(( $((finish_time - start_time)) /60 ))
-
 echo -e "\033[31m"
 echo '----------------------------------------'
 echo '        Installation completed!'
 echo '     Reboot the computer: # reboot'
 echo '----------------------------------------'
 echo -e "\033[0m"
-echo "Total install time: "$min" minutes"
 
 exit 0
