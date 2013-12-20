@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 19.12.2013
-# version	: 0.5.4.3
+# date		: 20.12.2013
+# version	: 0.5.4.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -70,6 +70,7 @@ if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
 	[[ -z "$root_part_number" ]] && config_fail 'root_part_number'
 	[[ -b "$dest_disk""$root_part_number" ]] || config_fail 'root_part_number'
+	fstype=$(findmnt -no FSTYPE /mnt)
 	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
@@ -651,7 +652,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.4.2'
+		echo 'archinstaller 0.5.4.4'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -683,9 +684,6 @@ fi
 
 # arch-install-scripts required
 type pacstrap > /dev/null || fail 'please install the arch-install-scripts package!'
-
-# wget required
-type wget > /dev/null || fail 'please install the wget package!'
 
 # set defaults
 confirm='yes'
@@ -733,10 +731,10 @@ fi
 # check internet connection
 echo -ne "\033[31m"
 echo '| Checking internet connection..'
-if wget -q -t 10 -T 5 http://mirrors.kernel.org -O /tmp/index.html; then
-	[[ -s /tmp/index.html ]] || fail 'please check the network connection!'
+if curl --retry 3 -m 10 -o /tmp/index.html -s http://mirrors.kernel.org; then
+	[[ -s /tmp/index.html ]] || fail 'please check the internet connection!'
 else
-	fail 'please check the network connection!'
+	fail 'please check the internet connection!'
 fi
 rm -f /tmp/index.html
 echo -ne "\033[32m"
@@ -745,7 +743,7 @@ echo -ne "\033[0m"
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
-	if wget -q -t 10 -T 5 "$mirror"lastsync -O /tmp/lastsync.txt; then
+	if curl "$mirror"lastsync --retry 3 -m 10 -o /tmp/lastsync.txt -s "$mirror"lastsync; then
 		[[ -s /tmp/lastsync.txt ]] || fail 'please check the mirror status and configuration!'
 	else
 		fail 'please check the mirror status and configuration!'

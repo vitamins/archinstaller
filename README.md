@@ -10,7 +10,6 @@ This is an automated installation script for arch linux.
 ### packages
 The utitlities needed by the script can be installed with the following packages:
 - arch-install-scripts version 12-1 (30 Nov 2013) or later
-- wget
 - For UEFI support: dosfstools
 - For GPT support: gptfdisk
 - For btrfs filesystems: btrfs-progs
@@ -23,7 +22,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - clone the repository: `git clone git://github.com/vitamins/archinstaller`
 
 ### Without git
-- download the tarball: `wget https://github.com/vitamins/archinstaller/tarball/master -O - | tar xz`
+- download the tarball: `curl -L https://github.com/vitamins/archinstaller/tarball/master | tar xz`
 
 ## Usage
 - Open the configuration file ari.conf with your editor: `nano ari.conf`
