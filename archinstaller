@@ -6,7 +6,7 @@
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 20.12.2013
-# version	: 0.5.4.4
+# version	: 0.5.4.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -743,7 +743,7 @@ echo -ne "\033[0m"
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
-	if curl "$mirror"lastsync --retry 3 -m 10 -o /tmp/lastsync.txt -s "$mirror"lastsync; then
+	if curl --retry 3 -m 10 -o /tmp/lastsync.txt -s "$mirror"lastsync; then
 		[[ -s /tmp/lastsync.txt ]] || fail 'please check the mirror status and configuration!'
 	else
 		fail 'please check the mirror status and configuration!'
@@ -811,6 +811,6 @@ echo '----------------------------------------'
 echo '        Installation completed!'
 echo '     Reboot the computer: # reboot'
 echo '----------------------------------------'
-echo -e "\033[0m"
+echo -ne "\033[0m"
 
 exit 0
