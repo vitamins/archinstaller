@@ -27,7 +27,6 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 ## Usage
 - Open the configuration file ari.conf with your editor: `nano ari.conf`
 - Check if dest_disk refers to the correct drive with `lsblk`
-- Make the script executable: `chmod +x ./archinstaller`
 - Run the script: `./archinstaller`
 
 ## Features
@@ -36,8 +35,8 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Handles GPT and MBR partition tables
 - Supported bootloaders: GRUB or gummiboot for UEFI, GRUB or syslinux for BIOS
 - Configure basic system settings like language,timezone,keymap and hostname
-- Optionally create a swap partition
-- Choose how much space to allocate for swap and root partition
+- Optionally create separate partitions for swap and home
+- Choose how much space to allocate for swap, root and home partition
 - Select filesystems for root and home partition
 - Supports encrypting the home partition with LUKS and dm-crypt
 - Allows you to download packages from the preferred mirror
@@ -46,6 +45,8 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Allows you to configure the network with dhcpcd, netctl or ifplugd
 - Allows you to install Xorg and a desktop environment
 - Optionally install additional packages
+
+![archinstaller](resource/ari.gif)
 
 ## Other
 ### Partitioning
