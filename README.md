@@ -50,7 +50,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 ## Other
 ### Partitioning
 At the beginning, the partition layout is cleared, and a new partition table is created on the storage device.
-Partition sizes are not checked by the script, if they are too big, the script will fail. For accommodating the base system and a minimal set of applications, the root partition should be at least 3 Gigabytes in size. By default, the EFI System Partition "ESP" has a size of 512M, to override this set the variable "esp_size". A seperate home partition is created by default, but this can be avoided by setting home='no'. The home partition takes up remaining space on the storage device, unless you set "home_size". The order of the partitions is from first to last ESP, swap, root, and home.
+Partition sizes are not checked by the script, if they are too big, the script will fail. For accommodating the base system and a minimal set of applications, the root partition should be at least 3 Gigabytes in size. By default, the EFI System Partition "ESP" has a size of 512M, to override this set the variable "esp_size". A seperate home partition is created by default, but this can be avoided by setting home='no'. To make the root partition take up the remaining free space, set root_size='free' together with home='no'. The home partition takes up remaining space on the storage device, unless you set "home_size". The order of the partitions is from first to last ESP, swap, root, and home.
 
 ### Manual Partitioning
 If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:

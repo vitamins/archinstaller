@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 20.12.2013
-# version	: 0.5.4.5
+# date		: 21.12.2013
+# version	: 0.5.4.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -87,8 +87,12 @@ else
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
 	# root_size
-	[[ -z "$root_size" ]] && config_fail 'root_size'
-	[[ "$root_size" =~ [0-9][K,M,G,T]$ ]] || config_fail 'root_size'
+	if [[ "$root_size" = 'free' ]]; then
+		[[ "$home" = 'no' ]] || config_fail 'home'
+	else
+		[[ -z "$root_size" ]] && config_fail 'root_size'
+		[[ "$root_size" =~ [0-9][K,M,G,T]$ ]] || config_fail 'root_size'
+	fi
 	# home
 	if [[ "$home" = 'yes' ]]; then
 		## home_size
@@ -331,12 +335,21 @@ w" | fdisk "$dest_disk"
 	fi
 
 	## root partition
-	echo -e "n\n\
+	if [[ "$root_size" = 'free' ]]; then
+		echo -e "n\n\
+p\n\
+"$root_part_number"\n\
+\n\
+\n\
+w" | fdisk "$dest_disk"
+	else
+		echo -e "n\n\
 p\n\
 "$root_part_number"\n\
 \n\
 +"$root_size"\n\
 w" | fdisk "$dest_disk"
+	fi
 
 	## wait a moment
 	sleep 1
@@ -404,13 +417,23 @@ Y" | gdisk "$dest_disk"
 	fi
 
 	## root partition
-	echo -e "n\n\
+	if [[ "$root_size" = 'free' ]]; then
+		echo -e "n\n\
+"$root_part_number"\n\
+\n\
+\n\
+8300\n\
+w\n\
+Y" | gdisk "$dest_disk"
+	else
+		echo -e "n\n\
 "$root_part_number"\n\
 \n\
 +"$root_size"\n\
 8300\n\
 w\n\
 Y" | gdisk "$dest_disk"
+	fi
 
 	## wait a moment
 	sleep 1
@@ -652,7 +675,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.4.4'
+		echo 'archinstaller 0.5.4.6'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -676,10 +699,10 @@ fi
 # check arch linux
 [[ -e /etc/arch-release ]] || fail 'please run on arch linux!'
 
-# check apple mac
-if [[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Inc.' ]] || \
-[[ "$( < '/sys/class/dmi/id/sys_vendor' )" == 'Apple Computer, Inc.' ]]; then
-		fail 'Apple Mac computers are not supported, due to non-compliant firmware!'
+# ⌘ check apple mac
+if [[ "$( < '/sys/class/dmi/id/sys_vendor' )" = 'Apple Inc.' ]] || \
+[[ "$( < '/sys/class/dmi/id/sys_vendor' )" = 'Apple Computer, Inc.' ]]; then
+	fail 'Apple Mac computers are not supported, due to non-compliant firmware!'
 fi
 
 # arch-install-scripts required
