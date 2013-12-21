@@ -46,8 +46,6 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Allows you to install Xorg and a desktop environment
 - Optionally install additional packages
 
-![archinstaller](resource/ari.gif)
-
 ## Other
 ### Partitioning
 At the beginning, the partition layout is cleared, and a new partition table is created on the storage device.
