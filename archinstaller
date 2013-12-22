@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 21.12.2013
-# version	: 0.5.4.6
+# date		: 22.12.2013
+# version	: 0.5.4.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -127,15 +127,16 @@ else
 	done
 	[[ "$correct" = 1 ]] || config_fail 'fstype'
 	if [[ "$fstype" = 'btrfs' ]]; then
-		type mkfs.btrfs > /dev/null || fail 'this script requires the btrfs-progs package!'
+		type mkfs.btrfs > /dev/null || fail 'please install the btrfs-progs package!'
 	elif [[ "$fstype" = 'nilfs2' ]]; then
-		type mkfs.nilfs2 > /dev/null || fail 'this script requires the nilfs-utils package!'
+		type mkfs.nilfs2 > /dev/null || fail 'please install the nilfs-utils package!'
 	fi
 fi
 # partition_table
 if [[ "$partition_table" = 'gpt' ]]; then
+
 	if [[ "$manual_part" = 'no' ]]; then
-		type gdisk > /dev/null || fail 'this script requires the gptfdisk package!'
+		type gdisk > /dev/null || fail 'please install the gptfdisk package!'
 	fi
 else
 	[[ "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
@@ -153,7 +154,7 @@ if [[ "$uefi" = 'yes' ]]; then
 	## partition_table
 	[[ "$partition_table" = 'gpt' ]] || config_fail 'partition_table'
 	if [[ "$manual_part" = 'no' ]]; then
-		type mkfs.vfat > /dev/null || fail 'this script requires the dosfstools package!'
+		type mkfs.vfat > /dev/null || fail 'please install the dosfstools package!'
 	fi
 else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
@@ -255,7 +256,7 @@ if [[ "$confirm" = 'yes' ]]; then
 	echo -e "\033[31m"
 	echo '----------------------------------------'
 	echo 'The destination drive will be formatted.'
-	echo "   All data on "$dest_disk" will be lost!"
+	echo "   All data on $dest_disk will be lost!"
 	echo '----------------------------------------'
 	echo -ne "\033[0m"
 	answer='x'
@@ -520,7 +521,7 @@ message 'Configuring system..'
 # crypttab
 if [[ "$encrypt_home" = 'yes' ]]; then
 	home_part_uuid=$(lsblk -dno UUID "$dest_disk""$home_part_number")
-	echo "home UUID="$home_part_uuid" none luks,timeout=60s" >> /mnt/etc/crypttab
+	echo "home UUID=$home_part_uuid none luks,timeout=60s" >> /mnt/etc/crypttab
 	[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/etc/crypttab
 fi
 
@@ -640,7 +641,7 @@ END_SYSLINUX
 	else
 		## install grub
 		pacman_install grub os-prober
-		echo "grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=i386-pc --recheck "$dest_disk"" | \
+		echo "grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=i386-pc --recheck $dest_disk" | \
 		arch-chroot /mnt
 	fi
 fi
@@ -675,7 +676,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.4.6'
+		echo 'archinstaller 0.5.4.7'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -806,7 +807,7 @@ fi
 if [[ "$add_user" = 'yes' ]]; then
 	useradd -R /mnt -m -g users -s /bin/bash "$user_name"
 	## set user password
-	message "Setting password for "$user_name".."
+	message "Setting password for $user_name.."
 	passwd -R /mnt "$user_name"
 fi
 
