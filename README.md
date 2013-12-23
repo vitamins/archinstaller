@@ -55,6 +55,7 @@ Partition sizes are not checked in advance, make sure the drive is big enough. T
 #### Examples
 A list of possible partition layouts that can be created by archinstaller. For simplification UEFI System partition and BIOS Boot partition have been left out of the examples. Default options are included in (brackets).
 
+<pre>
 0. example:
    Single root partition spanning the whole disk.
 	---------- 0
@@ -138,6 +139,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- End
    => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
                home_size='ZG';
+</pre>
 
 ### Manual Partitioning
 If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:
