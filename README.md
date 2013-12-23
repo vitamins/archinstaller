@@ -48,8 +48,96 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 
 ## Other
 ### Partitioning
-At the beginning, the partition layout is cleared, and a new partition table is created on the storage device.
-Partition sizes are not checked by the script, if they are too big, the script will fail. For accommodating the base system and a minimal set of applications, the root partition should be at least 3 Gigabytes in size. By default, the EFI System Partition "ESP" has a size of 512M, to override this set the variable "esp_size". A seperate home partition is created by default, but this can be avoided by setting home='no'. To make the root partition take up the remaining free space, set root_size='free' together with home='no'. The home partition takes up remaining space on the storage device, unless you set "home_size". The order of the partitions is from first to last ESP, swap, root, and home.
+A simple partitioning tool that creates partitions as well as filesystems is included in the script. It is controlled by variables in the configuration file.
+If you want to create more advanced partition layouts, see paragraph "Manual Partitioning".
+Partition sizes are not checked in advance, make sure the drive is big enough. The order of the partitions is from first to last ESP, swap, root, and home.
+
+#### Examples
+A list of possible partition layouts that can be created by archinstaller. For simplification UEFI System partition and BIOS Boot partition have been left out of the examples. Default options are included in (brackets).
+
+0. example:
+   Single root partition spanning the whole disk.
+	---------- 0
+	| /
+	---------- End
+   => options: swap='no'; home='no'; root_size='free';
+
+1. example:
+   Root partition of size X GiB, with free space left.
+	---------- 0
+	| /
+	---------- X GiB
+	| free
+	---------- End
+   => options: swap='no'; home='no'; root_size='XG';
+
+2. example:
+   Swap partition of size Y GiB, root partition spanning the remaining space.
+	---------- 0
+	| [swap]
+	---------- Y GiB
+	| /
+	---------- End
+  => options: swap='yes'; home='no'; swap_size='YG'; root_size='free';
+
+3. example:
+   Swap partition of size Y GiB, root partition of size X GiB.
+	---------- 0
+	| [swap]
+	---------- Y GiB
+	| /
+	---------- Y+X GiB
+	| free
+	---------- End
+  => options: swap='yes'; home='no'; swap_size='YG'; root_size='XG';
+
+4. example:
+   Root partition of size X GiB, home partition spanning the remaining space.
+	---------- 0
+	| /
+	---------- X GiB
+	| /home
+	---------- End
+  => options: swap='no'; (home='yes'); root_size='XG'; (home_size='free');
+
+5. example:
+   Root partition of size X GiB, home partition of size Z GiB.
+	---------- 0
+	| /
+	---------- X GiB
+	| /home
+	---------- X+Z GiB
+	| free
+	---------- End
+   => options: swap='no'; (home='yes'); root_size='XG'; home_size='ZG';
+
+6. example:
+   Swap partition of size Y GiB, root partition of size X GiB, home partition
+   spanning the remaining space.
+        ---------- 0
+        | [swap]
+        ---------- Y GiB
+        | /
+        ---------- Y+X GiB
+	| /home
+	---------- End
+   => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
+               (home_size='free');
+
+7. example:
+   Swap partition of size Y GiB, root partition of size X GiB, home partition
+   of size Z GiB.
+	---------- 0
+	| [swap]
+	---------- Y GiB
+	| /
+	---------- Y+X GiB
+	| /home
+	---------- Y+X+Z GiB
+	| free
+	---------- End
+   => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
+               home_size='ZG';
 
 ### Manual Partitioning
 If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:
@@ -61,7 +149,7 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
 
-Manual partitioning allows you to use this script with more complex setups, such as lvm or RAID. In that case, you have to configure the necessary settings on your own. For example for lvm, it is necessary to add the lvm hook to mkinitcpio.conf .
+Choose manual partitioning to set up more complex setups, such as lvm, RAID or btrfs subvolumes.
 
 ### fstab, crypttab and mkinitcpio.conf
 The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf.
@@ -90,8 +178,3 @@ When using encryption, think about a strong passphrase before starting the insta
 
 ### Encryption
 If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to "yes". Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
-
-## Help and Bugs
-Please report bugs should you encounter them in the script.
-A thread about it can be found on the arch linux forums:
-https://bbs.archlinux.org/viewtopic.php?id=166112
