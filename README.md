@@ -1,5 +1,5 @@
 # archinstaller
-This is an automated installation script for arch linux.
+Automated installation script for arch linux.
 
 ## Prerequisites
 - You are booted into an arch linux environment
@@ -8,7 +8,7 @@ This is an automated installation script for arch linux.
 - The script is run as 'root' user
 
 ### packages
-The utitlities needed by the script can be installed with the following packages:
+The required utilities can be installed with the following packages:
 - arch-install-scripts version 12-1 (30 Nov 2013) or later
 - For UEFI support: dosfstools
 - For GPT support: gptfdisk
@@ -48,9 +48,10 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 
 ## Other
 ### Partitioning
-A simple partitioning tool that creates partitions as well as filesystems is included in the script. It is controlled by variables in the configuration file.
-If you want to create more advanced partition layouts, see paragraph "Manual Partitioning".
-Partition sizes are not checked in advance, make sure the drive is big enough. The order of the partitions is from first to last ESP, swap, root, and home.
+A simple partitioning tool that creates partitions as well as filesystems is included in the script. It is controlled by variables in the configuration file. If you want to create more advanced partition layouts, see paragraph "Manual Partitioning".
+The partition sizes are set via variables "swap_size", "root_size", and "home_size". The size must consist of a number with the letter K for Kib, M for Mib, G for Gib or T for Tib appended.
+For the partition table choose between MBR and GPT by variable "partition_table". For UEFI booting, only GPT is supported as partition table.
+The order of the partitions is from first to last ESP, swap, root, and home.
 
 #### Examples
 A list of possible partition layouts that can be created by archinstaller. For simplification UEFI System partition and BIOS Boot partition have been left out of the examples. Default options are included in (brackets).
@@ -153,10 +154,12 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 
 Choose manual partitioning to set up more complex setups, such as lvm, RAID or btrfs subvolumes.
 
+### mirrors
+The selected mirror should be specified in the same format as listed on https://www.archlinux.org/mirrors/status/. Do not leave out the last slash.
+To use the mirrorlist from the install host, set mirror to 'keep'. This setting overwrites the mirrorlist on the host and on the installed system.
+
 ### fstab, crypttab and mkinitcpio.conf
-The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf.
-After mkinitcpio.conf has been edited, the initramfs is regenerated.
-If you want to skip this step, set the configuration option edit_conf='no'.
+The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf. After mkinitcpio.conf has been edited, the initramfs is regenerated. If you want to skip this step, set the configuration option edit_conf='no'.
 
 ### Language
 The language setting in "locale" is not verified by the script, but english (en_US) is generated as fallback setting.
@@ -171,12 +174,11 @@ All needed modules are automatically loaded by udev, so you will rarely need to 
 Configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
 
 ### Additional Packages
-There are two possibilities to make the script install additional packages. You can add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqent > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
-Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed.
+There are two possibilities to make the script install additional packages. You can add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqent > pkglist.txt` You can also use both options at the same time, duplicated entries are eliminated by pacman.
+Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed. Leave the "packages" array empty to skip this step.
 
 ### Passwords
-Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation.
-When using encryption, think about a strong passphrase before starting the installation.
+Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation. When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
 If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to "yes". Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.

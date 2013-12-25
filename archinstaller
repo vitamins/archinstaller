@@ -6,7 +6,7 @@
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 25.12.2013
-# version	: 0.5.5
+# version	: 0.5.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -39,6 +39,18 @@ pacman_install() {
 pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
+unit_to_bytes() {
+x=$1
+case ${x: -1} in
+        K) mult='1024'          ;;
+        M) mult='1048576'       ;;
+        G) mult='1073741824'    ;;
+        T) mult='1099511627776' ;;
+esac
+num=${x%?}
+echo $(( $num * $mult ))
+}
+
 check_conf() {
 echo -e "\033[31m"
 echo '| Checking configuration..'
@@ -55,16 +67,8 @@ fi
 [[ -z "$dest_disk" ]] && config_fail 'dest_disk'
 ## check if dest_disk is a valid block device
 [[ "$(lsblk -dno TYPE "$dest_disk")" = 'disk' ]] || config_fail 'dest_disk'
-# decide for gpt or mbr
-if [[ "$partition_table" = 'auto' ]]; then
-	dest_disk_size=$(blockdev --getsize64 "$dest_disk")
-	## check if disk is larger than 1099511627776 bytes ( 1TiB )
-	if (( "$dest_disk_size" > 1099511627776 )); then
-		partition_table='gpt'
-	else
-		partition_table='mbr'
-	fi
-fi
+dest_disk_size=$(blockdev --getsize64 "$dest_disk")
+totalsize=0
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
@@ -82,7 +86,8 @@ else
 	if [[ "$swap" = 'yes' ]]; then
 		## swap_size
 		[[ -z "$swap_size" ]] && config_fail 'swap_size'
-		[[ "$swap_size" =~ [0-9][K,M,G,T]$ ]] || config_fail 'swap_size'
+		[[ "$swap_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'swap_size'
+		totalsize=$(unit_to_bytes "$swap_size")
 	else
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
@@ -91,14 +96,16 @@ else
 		[[ "$home" = 'no' ]] || config_fail 'home'
 	else
 		[[ -z "$root_size" ]] && config_fail 'root_size'
-		[[ "$root_size" =~ [0-9][K,M,G,T]$ ]] || config_fail 'root_size'
+		[[ "$root_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'root_size'
+		totalsize=$(( totalsize + $(unit_to_bytes "$root_size") ))
 	fi
 	# home
 	if [[ "$home" = 'yes' ]]; then
 		## home_size
 		if [[ "$home_size" != 'free' ]]; then
 			[[ -z "$home_size" ]] && config_fail 'home_size'
-			[[ "$home_size" =~ [0-9][K,M,G,T]$ ]] || config_fail 'home_size'
+			[[ "$home_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'home_size'
+			totalsize=$(( totalsize + $(unit_to_bytes "$home_size") ))
 		fi
 		## encrypt_home
 		if [[ "$encrypt_home" = 'yes' ]]; then
@@ -155,6 +162,9 @@ if [[ "$uefi" = 'yes' ]]; then
 	if [[ "$manual_part" = 'no' ]]; then
 		type mkfs.vfat > /dev/null || fail 'please install the dosfstools package!'
 	fi
+	[[ -z "$esp_size" ]] && config_fail 'esp_size'
+	[[ "$esp_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'esp_size'
+	totalsize=$(( totalsize + $(unit_to_bytes "$esp_size") ))
 else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
 	## bootloader
@@ -169,6 +179,10 @@ else
 	else
 		[[ "$bootloader" = 'grub' ]] || config_fail 'bootloader'
 	fi
+fi
+# check if totalsize plus 100 MiB is smaller than disk size
+if [[ "$manual_part" = 'no' ]]; then
+	(( totalsize + 104857600 < dest_disk_size )) || fail 'disk size is too small!'
 fi
 # mirror (online status is checked later)
 [[ -z "$mirror" ]] && config_fail 'mirror'
