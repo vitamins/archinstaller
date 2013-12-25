@@ -25,7 +25,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - download the tarball: `curl -L https://github.com/vitamins/archinstaller/tarball/master | tar xz`
 
 ## Usage
-- Open the configuration file ari.conf with your editor: `nano ari.conf`
+- Edit the configuration file ari.conf: `nano ari.conf`
 - Check if dest_disk refers to the correct drive with `lsblk`
 - Run the script: `./archinstaller`
 
@@ -115,11 +115,11 @@ A list of possible partition layouts that can be created by archinstaller. For s
 6. example:
    Swap partition of size Y GiB, root partition of size X GiB, home partition
    spanning the remaining space.
-        ---------- 0
-        | [swap]
-        ---------- Y GiB
-        | /
-        ---------- Y+X GiB
+	---------- 0
+	| [swap]
+	---------- Y GiB
+	| /
+	---------- Y+X GiB
 	| /home
 	---------- End
    => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
@@ -155,8 +155,8 @@ Choose manual partitioning to set up more complex setups, such as lvm, RAID or b
 
 ### fstab, crypttab and mkinitcpio.conf
 The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf.
-After the configuration file mkinitcpio.conf has been opened in the editor, the initramfs is regenerated.
-If you want to skip this step, set the configuration option check_conf='no'.
+After mkinitcpio.conf has been edited, the initramfs is regenerated.
+If you want to skip this step, set the configuration option edit_conf='no'.
 
 ### Language
 The language setting in "locale" is not verified by the script, but english (en_US) is generated as fallback setting.
@@ -168,11 +168,11 @@ example:
 All needed modules are automatically loaded by udev, so you will rarely need to add something here. Only add modules that you know are missing.
 
 ### nectl-custom
-It is possible to configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
+Configure netctl profiles of your choice by setting network='netctl-custom'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
 
 ### Additional Packages
 There are two possibilities to make the script install additional packages. You can add them to the packages array in the configuration file. Alternatively you can write the packages to `pkglist.txt`, one on each line. To generate a list of explicitly installed packages on an existing installation, use this command: `pacman -Qqent > pkglist.txt` You can also use both options at the same time, duplicate entries are eliminated by pacman.
-All of the packages must be part of the core,extra or community repositories. It is not possible to install packages from the multilib repository by the script. Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed.
+Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed.
 
 ### Passwords
 Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation.
