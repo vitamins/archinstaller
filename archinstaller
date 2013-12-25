@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 22.12.2013
-# version	: 0.5.4.7
+# date		: 25.12.2013
+# version	: 0.5.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -54,7 +54,7 @@ fi
 # dest_disk
 [[ -z "$dest_disk" ]] && config_fail 'dest_disk'
 ## check if dest_disk is a valid block device
-udevadm info --query=all --name="$dest_disk" | grep DEVTYPE=disk > /dev/null || config_fail 'dest_disk'
+[[ "$(lsblk -dno TYPE "$dest_disk")" = 'disk' ]] || config_fail 'dest_disk'
 # decide for gpt or mbr
 if [[ "$partition_table" = 'auto' ]]; then
 	dest_disk_size=$(blockdev --getsize64 "$dest_disk")
@@ -134,7 +134,6 @@ else
 fi
 # partition_table
 if [[ "$partition_table" = 'gpt' ]]; then
-
 	if [[ "$manual_part" = 'no' ]]; then
 		type gdisk > /dev/null || fail 'please install the gptfdisk package!'
 	fi
@@ -171,7 +170,7 @@ else
 		[[ "$bootloader" = 'grub' ]] || config_fail 'bootloader'
 	fi
 fi
-# mirror
+# mirror (online status is checked later)
 [[ -z "$mirror" ]] && config_fail 'mirror'
 # locale
 [[ -z "$locale" ]] && config_fail 'locale'
@@ -250,25 +249,29 @@ echo '| OK.'
 echo -e "\033[0m"
 }
 
-make_part() {
-# ask for confirmation
-if [[ "$confirm" = 'yes' ]]; then
-	echo -e "\033[31m"
-	echo '----------------------------------------'
+ask_confirm() {
+echo -e "\033[31m"
+echo '----------------------------------------'
+if [[ "$manual_part" = 'no' ]]; then
 	echo 'The destination drive will be formatted.'
 	echo "   All data on $dest_disk will be lost!"
-	echo '----------------------------------------'
-	echo -ne "\033[0m"
-	answer='x'
-	while [[ "$answer" != 'YES' ]]; do
-		echo -n 'Continue? (YES/no) '
-		read answer
-		if [[ "$answer" = 'no' ]]; then
-			fail 'Script cancelled!'
-		fi
-	done
+else
+	echo 'The following filesystems are targeted.'
+	findmnt -l -o TARGET,SOURCE -R /mnt
 fi
+echo '----------------------------------------'
+echo -ne "\033[0m"
+answer='x'
+while [[ "$answer" != 'YES' ]]; do
+	echo -n 'Continue? (YES/no) '
+	read answer
+	if [[ "$answer" = 'no' ]]; then
+		fail 'Script cancelled!'
+	fi
+done
+}
 
+make_part() {
 # prepare disk
 message 'Preparing disk..'
 umount "$dest_disk"* || :
@@ -586,7 +589,7 @@ if [[ "$uefi" = 'yes' ]]; then
 	if [[ "$bootloader" = 'grub' ]]; then
 		## install grub
 		pacman_install grub efibootmgr dosfstools os-prober
-		# in special cases, change to: --target='i386-efi'
+		# in special cases, change to: --target=i386-efi
 		echo 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=x86_64-efi --efi-directory=/boot \
 		--bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
@@ -607,6 +610,7 @@ linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
 options	root=PARTUUID=$root_part_partuuid rw
 END_GUMMIBOOT
+		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/loader/entries/arch.conf
 
 	fi
 else
@@ -637,7 +641,7 @@ LABEL archfallback
 	APPEND root=UUID=$root_part_uuid rw
 	INITRD ../initramfs-linux-fallback.img
 END_SYSLINUX
-
+		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/syslinux/syslinux.cfg
 	else
 		## install grub
 		pacman_install grub os-prober
@@ -676,7 +680,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.4.7'
+		echo 'archinstaller 0.5.5'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -778,6 +782,8 @@ fi
 # paranoid shell
 set -e -u
 
+# ask for confirmation
+[[ "$confirm" = 'yes' ]] && ask_confirm
 # create partitions & filesystems, mount filesystems
 [[ "$manual_part" = 'no' ]] && make_part
 
