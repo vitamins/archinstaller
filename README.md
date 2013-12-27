@@ -40,7 +40,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Select filesystems for root and home partition
 - Supports encrypting the home partition with LUKS and dm-crypt
 - Allows you to download packages from the preferred mirror
-- Allows you to set a root password
+- Allows you to set passwords for root and standard user
 - Allows you to create an additional user
 - Allows you to configure the network with dhcpcd, netctl or ifplugd
 - Allows you to install Xorg and a desktop environment
@@ -152,7 +152,7 @@ If you want to create the partitions and filesystems on your own, set "manual_pa
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
 
-Choose manual partitioning to set up more complex setups, such as lvm, RAID or btrfs subvolumes.
+Choose manual partitioning for more complex setups, such as lvm, RAID or btrfs subvolumes.
 
 ### mirrors
 The selected mirror should be specified in the same format as listed on https://www.archlinux.org/mirrors/status/. Do not leave out the last slash.
