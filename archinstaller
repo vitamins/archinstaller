@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 25.12.2013
-# version	: 0.5.6
+# date		: 27.12.2013
+# version	: 0.5.6.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -212,8 +212,8 @@ case "$network" in
 			[[ -s ./"$netctl_profile" ]] || config_fail 'netctl_profile';;
 	*)		config_fail 'network';;
 esac
-# set_root_password
-[[ "$set_root_password" = 'yes' || "$set_root_password" = 'no' ]] || config_fail 'set_root_password'
+# set_password
+[[ "$set_password" = 'yes' || "$set_password" = 'no' ]] || config_fail 'set_password'
 # add_user
 if [[ "$add_user" = 'yes' ]]; then
 	## user_name
@@ -694,7 +694,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.5'
+		echo 'archinstaller 0.5.6.1'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -818,7 +818,7 @@ configure_system
 install_bootloader
 
 # root password
-if [[ "$set_root_password" = 'yes' ]]; then
+if [[ "$set_password" = 'yes' ]]; then
 	message 'Setting password for root user..'
 	passwd -R /mnt root
 fi
@@ -827,8 +827,10 @@ fi
 if [[ "$add_user" = 'yes' ]]; then
 	useradd -R /mnt -m -g users -s /bin/bash "$user_name"
 	## set user password
-	message "Setting password for $user_name.."
-	passwd -R /mnt "$user_name"
+	if [[ "set_password" = 'yes' ]]; then
+		message "Setting password for $user_name.."
+		passwd -R /mnt "$user_name"
+	fi
 fi
 
 # install xorg
