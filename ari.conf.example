@@ -5,8 +5,8 @@
 #
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 27.12.2013
-# version	: 0.5.6.1
+# date		: 31.12.2013
+# version	: 0.5.6.2
 # license	: GPLv2
 #
 # See README for additional options, and read the script for details about how options are processed.
@@ -14,19 +14,18 @@
 # EXAMPLE CONFIGURATION ONLY
 #
 
-dest_disk='/dev/sda'
 uefi='no'
-partition_table='gpt'
 bootloader='syslinux'
+dest_disk='/dev/sda'
+partition_table='gpt'
 swap='no'
-root_size='20G'
-fstype='ext4'
 encrypt_home='yes'
 cipher='aes-xts-plain64'
 hash_alg='sha512'
 key_size='512'
+root_size='20G'
+fstype='ext4'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
-packages=(vim zsh)
 locale='de_DE.UTF-8 UTF-8'
 keymap='de-latin1'
 font='Lat2-Terminus16'
@@ -37,6 +36,7 @@ network='dhcpcd'
 set_password='no'
 add_user='yes'
 user_name='archey'
+packages=(vim zsh)
 xorg='yes'
 install_desktop_environment='yes'
 desktop_environment='xfce4'

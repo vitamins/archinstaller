@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 27.12.2013
-# version	: 0.5.6.1
+# date		: 31.12.2013
+# version	: 0.5.6.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -694,7 +694,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.6.1'
+		echo 'archinstaller 0.5.6.2'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
