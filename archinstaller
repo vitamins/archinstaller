@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 31.12.2013
-# version	: 0.5.6.2
+# date		: 02.01.2014
+# version	: 0.5.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -42,10 +42,10 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 unit_to_bytes() {
 x=$1
 case ${x: -1} in
-        K) mult='1024'          ;;
-        M) mult='1048576'       ;;
-        G) mult='1073741824'    ;;
-        T) mult='1099511627776' ;;
+	K)	mult='1024';;
+	M)	mult='1048576';;
+	G)	mult='1073741824';;
+	T)	mult='1099511627776';;
 esac
 num=${x%?}
 echo $(( $num * $mult ))
@@ -66,7 +66,7 @@ fi
 # dest_disk
 [[ -z "$dest_disk" ]] && config_fail 'dest_disk'
 ## check if dest_disk is a valid block device
-[[ "$(lsblk -dno TYPE "$dest_disk")" = 'disk' ]] || config_fail 'dest_disk'
+[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 dest_disk_size=$(blockdev --getsize64 "$dest_disk")
 totalsize=0
 # manual_part
@@ -74,7 +74,11 @@ if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
 	[[ -z "$root_part_number" ]] && config_fail 'root_part_number'
 	[[ -b "$dest_disk""$root_part_number" ]] || config_fail 'root_part_number'
-	fstype=$(findmnt -no FSTYPE /mnt)
+	if findmnt /mnt/boot > /dev/null; then
+		fstype=$(findmnt -no FSTYPE /mnt/boot)
+	else
+		fstype=$(findmnt -no FSTYPE /mnt)
+	fi
 	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
@@ -123,21 +127,17 @@ else
 		encrypt_home='no'
 	fi
 	# fstpye
-	[[ -z "$fstype" ]] && config_fail 'fstype'
-	fstypes='btrfs ext2 ext3 ext4 jfs nilfs2 reiserfs xfs'
-	correct=0
-	for fs in ${fstypes[@]}; do
-	        if [[ "$fstype" = "$fs" ]]; then
-	                correct=1
-	                break
-	        fi
-	done
-	[[ "$correct" = 1 ]] || config_fail 'fstype'
-	if [[ "$fstype" = 'btrfs' ]]; then
-		type mkfs.btrfs > /dev/null || fail 'please install the btrfs-progs package!'
-	elif [[ "$fstype" = 'nilfs2' ]]; then
-		type mkfs.nilfs2 > /dev/null || fail 'please install the nilfs-utils package!'
-	fi
+	case "$fstype" in
+		btrfs)	type mkfs.btrfs > /dev/null || fail 'please install the btrfs-progs package!';;
+		ext2)		;;
+		ext3)		;;
+		ext4)		;;
+		jfs)	type mkfs.jfs > /dev/null || fail 'please install the jfsutils package!';;
+		nilfs2)	type mkfs.nilfs2 > /dev/null || fail 'please install the nilfs-utils package!';;
+		reiserfs)	type mkfs.reiserfs > /dev/null || fail 'please install the reiserfsprogs package!';;
+		xfs)	type mkfs.xfs > /dev/null || fail 'please install the xfsprogs package!';;
+		*)	config_fail 'fstype';;
+	esac
 fi
 # partition_table
 if [[ "$partition_table" = 'gpt' ]]; then
@@ -174,7 +174,7 @@ else
 			ext3)	;;
 			ext4)	;;
 			btrfs)	;;
-			*) 	config_fail 'bootloader';;
+			*)	config_fail 'bootloader';;
 		esac
 	else
 		[[ "$bootloader" = 'grub' ]] || config_fail 'bootloader'
@@ -210,49 +210,41 @@ case "$network" in
 	ifplugd)	;;
 	netctl-custom)	[[ -z "$netctl_profile" ]] && config_fail 'netctl_profile'
 			[[ -s ./"$netctl_profile" ]] || config_fail 'netctl_profile';;
-	*)		config_fail 'network';;
+	*)	config_fail 'network';;
 esac
 # set_password
 [[ "$set_password" = 'yes' || "$set_password" = 'no' ]] || config_fail 'set_password'
 # add_user
 if [[ "$add_user" = 'yes' ]]; then
-	## user_name
-	[[ -z "$user_name" ]] && config_fail 'user_name'
-	[[ "$user_name" =~ ( |\') ]] && config_fail 'user_name'
+	## username
+	[[ -z "$username" ]] && config_fail 'username'
+	[[ "$username" =~ ( |\') ]] && config_fail 'username'
 else
 	[[ "$add_user" = 'no' ]] || config_fail 'add_user'
 fi
 
 # xorg
 if [[ "$xorg" = 'yes' ]]; then
-	## install_desktop_environment
-	if [[ "$install_desktop_environment" = 'yes' ]]; then
-		### desktop_environment
-		case "$desktop_environment" in
-			xfce4)		;;
-			gnome)		;;
-			kde)		;;
-			cinnamon)	;;
-			lxde)		;;
-			enlightenment17);;
-			*)		config_fail 'desktop_environment';;
-		esac
-	else
-		[[ "$install_desktop_environment" = 'no' ]] || config_fail 'install_desktop_environment'
-	fi
-	## install_display_manager
-	if [[ "$install_display_manager" = 'yes' ]]; then
-		### display_manager
-		case "$display_manager" in
-			gdm)	;;
-			kdm)	;;
-			lxdm)	;;
-			xdm)	;;
-			*)	config_fail 'display_manager';;
-		esac
-	else
-		[[ "$install_display_manager" = 'no' ]] || config_fail 'install_display_manager'
-	fi
+	## desktop_environment
+	case "$desktop_environment" in
+		no)		;;
+		xfce4)		;;
+		gnome)		;;
+		kde)		;;
+		cinnamon)	;;
+		lxde)		;;
+		enlightenment17);;
+		*)	config_fail 'desktop_environment';;
+	esac
+	### display_manager
+	case "$display_manager" in
+		no)	;;
+		gdm)	;;
+		kdm)	;;
+		lxdm)	;;
+		xdm)	;;
+		*)	config_fail 'display_manager';;
+	esac
 else
 	[[ "$xorg" = 'no' ]] || config_fail 'xorg'
 fi
@@ -579,7 +571,7 @@ if [[ "$network" != 'no' ]]; then
 	## fix wired network interface name to eth0
 	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
 	case "$network" in
-		dhcpcd)		arch-chroot /mnt systemctl enable dhcpcd@eth0.service;;
+		dhcpcd)	arch-chroot /mnt systemctl enable dhcpcd@eth0.service;;
 		netctl-dhcp)	cp /mnt/etc/netctl/examples/ethernet-dhcp /mnt/etc/netctl/ethernet_dynamic
 				arch-chroot /mnt netctl enable ethernet_dynamic;;
 		ifplugd)	pacman_install ifplugd
@@ -669,32 +661,30 @@ install_xorg() {
 if [[ "$xorg" = 'yes' ]]; then
 	pacman_install xorg-server xorg-server-utils xorg-xinit xf86-video-vesa
 	# install desktop environment
-	if [[ "$install_desktop_environment" = 'yes' ]]; then
-		case "$desktop_environment" in
-			xfce4)		 pacman_install xfce4 xfce4-goodies;;
-			gnome)		 pacman_install gnome gnome-extra;;
-			kde)		 pacman_install kde;;
-			cinnamon)	 pacman_install cinnamon;;
-			lxde)		 pacman_install lxde;;
-			enlightenment17) pacman_install enlightenment17;;
-		esac
-	fi
+	case "$desktop_environment" in
+		no)	;;
+		xfce4)	pacman_install xfce4 xfce4-goodies;;
+		gnome)	pacman_install gnome gnome-extra;;
+		kde)	pacman_install kde;;
+		cinnamon)	pacman_install cinnamon;;
+		lxde)	pacman_install lxde;;
+		enlightenment17)	pacman_install enlightenment17;;
+	esac
 	# install display manager
-	if [[ "$install_display_manager" = 'yes' ]]; then
-		case "$display_manager" in
-			gdm)	pacman_install gdm;;
-			kdm)	pacman_install kdebase-workspace;;
-			lxdm)	pacman_install lxdm;;
-			xdm)	pacman_install xorg-xdm;;
-		esac
-	fi
+	case "$display_manager" in
+		no)	;;
+		gdm)	pacman_install gdm;;
+		kdm)	pacman_install kdebase-workspace;;
+		lxdm)	pacman_install lxdm;;
+		xdm)	pacman_install xorg-xdm;;
+	esac
 fi
 }
 
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.6.2'
+		echo 'archinstaller 0.5.7'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -825,11 +815,11 @@ fi
 
 # add user
 if [[ "$add_user" = 'yes' ]]; then
-	useradd -R /mnt -m -g users -s /bin/bash "$user_name"
+	useradd -R /mnt -m -g users -s /bin/bash "$username"
 	## set user password
 	if [[ "set_password" = 'yes' ]]; then
-		message "Setting password for $user_name.."
-		passwd -R /mnt "$user_name"
+		message "Setting password for $username.."
+		passwd -R /mnt "$username"
 	fi
 fi
 
