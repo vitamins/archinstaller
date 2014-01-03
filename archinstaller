@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 02.01.2014
-# version	: 0.5.7
+# date		: 03.01.2014
+# version	: 0.5.8
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -201,7 +201,7 @@ timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || confi
 [[ "$hardware_clock" = 'utc' || "$hardware_clock" = 'localtime' ]] || config_fail 'hardware_clock'
 # hostname
 [[ -z "$hostname" ]] && config_fail 'hostname'
-[[ "$hostname" =~ ( |\') ]] && config_fail 'hostname'
+[[ "$hostname" =~ ^[a-z0-9][a-z0-9-]*[a-z0-9]$ ]] || config_fail 'hostname'
 # network
 case "$network" in
 	no)		;;
@@ -218,7 +218,7 @@ esac
 if [[ "$add_user" = 'yes' ]]; then
 	## username
 	[[ -z "$username" ]] && config_fail 'username'
-	[[ "$username" =~ ( |\') ]] && config_fail 'username'
+	[[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || config_fail 'username'
 else
 	[[ "$add_user" = 'no' ]] || config_fail 'add_user'
 fi
@@ -586,6 +586,28 @@ if [[ "$edit_conf" = 'yes' ]]; then
 	"$EDITOR" /mnt/etc/mkinitcpio.conf
 	arch-chroot /mnt mkinitcpio -p linux
 fi
+
+# root password
+if [[ "$set_password" = 'yes' ]]; then
+	message 'Setting password for root user..'
+	while :
+	do
+		passwd -R /mnt root && break
+	done
+fi
+
+# add user
+if [[ "$add_user" = 'yes' ]]; then
+	useradd -R /mnt -m -g users -s /bin/bash "$username"
+	## set user password
+	if [[ "set_password" = 'yes' ]]; then
+		message "Setting password for $username.."
+		while :
+		do
+			passwd -R /mnt "$username" && break
+		done
+	fi
+fi
 }
 
 install_bootloader() {
@@ -684,7 +706,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.7'
+		echo 'archinstaller 0.5.8'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -806,22 +828,6 @@ configure_system
 
 # bootloader
 install_bootloader
-
-# root password
-if [[ "$set_password" = 'yes' ]]; then
-	message 'Setting password for root user..'
-	passwd -R /mnt root
-fi
-
-# add user
-if [[ "$add_user" = 'yes' ]]; then
-	useradd -R /mnt -m -g users -s /bin/bash "$username"
-	## set user password
-	if [[ "set_password" = 'yes' ]]; then
-		message "Setting password for $username.."
-		passwd -R /mnt "$username"
-	fi
-fi
 
 # install xorg
 install_xorg

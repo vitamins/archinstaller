@@ -1,5 +1,5 @@
 # archinstaller
-Automated installation script for arch linux.
+Automated installation script for arch linux written in bash.
 
 ## Prerequisites
 - You are booted into an arch linux environment
