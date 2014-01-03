@@ -600,7 +600,7 @@ fi
 if [[ "$add_user" = 'yes' ]]; then
 	useradd -R /mnt -m -g users -s /bin/bash "$username"
 	## set user password
-	if [[ "set_password" = 'yes' ]]; then
+	if [[ "$set_password" = 'yes' ]]; then
 		message "Setting password for $username.."
 		while :
 		do
