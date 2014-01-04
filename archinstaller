@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 03.01.2014
-# version	: 0.5.8
+# date		: 04.01.2014
+# version	: 0.5.9
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -188,7 +188,7 @@ fi
 [[ -z "$mirror" ]] && config_fail 'mirror'
 # locale
 [[ -z "$locale" ]] && config_fail 'locale'
-[[ "$locale" =~ ( |\') ]] || config_fail 'locale'
+[[ "$locale" =~ ^[a-z]{2,3}_[A-Z]{2}(.UTF-8)?\ UTF-8$ ]] || config_fail 'locale'
 # keymap
 [[ -z "$keymap" ]] && config_fail 'keymap'
 localectl --no-pager list-keymaps | grep -x "$keymap" > /dev/null || config_fail 'keymap'
@@ -583,8 +583,10 @@ fi
 
 #  mkinitcpio
 if [[ "$edit_conf" = 'yes' ]]; then
+	cp /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf
 	"$EDITOR" /mnt/etc/mkinitcpio.conf
-	arch-chroot /mnt mkinitcpio -p linux
+	cmp -s /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf || arch-chroot /mnt mkinitcpio -p linux
+	rm -f /tmp/mkinitpcio.conf
 fi
 
 # root password
@@ -706,7 +708,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.8'
+		echo 'archinstaller 0.5.9'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
