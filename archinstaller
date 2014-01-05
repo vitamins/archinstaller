@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 04.01.2014
-# version	: 0.5.9
+# date		: 05.01.2014
+# version	: 0.5.9.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
