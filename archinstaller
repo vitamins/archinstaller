@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 05.01.2014
-# version	: 0.5.9.1
+# date		: 06.01.2014
+# version	: 0.5.9.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ###############################################################
@@ -618,7 +618,7 @@ if [[ "$uefi" = 'yes' ]]; then
 	# UEFI
 	if [[ "$bootloader" = 'grub' ]]; then
 		## install grub
-		pacman_install grub efibootmgr dosfstools os-prober
+		pacman_install dosfstools efibootmgr grub
 		# in special cases, change to: --target=i386-efi
 		echo 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=x86_64-efi --efi-directory=/boot \
 		--bootloader-id=arch_grub --recheck' | arch-chroot /mnt
@@ -648,7 +648,7 @@ else
 	if [[ "$bootloader" = 'syslinux' ]]; then
 		## install syslinux
 		if [[ "$partition_table" = 'gpt' ]]; then
-			pacman_install syslinux gptfdisk
+			pacman_install gptfdisk syslinux
 		else
 			pacman_install syslinux
 		fi
@@ -674,7 +674,7 @@ END_SYSLINUX
 		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/syslinux/syslinux.cfg
 	else
 		## install grub
-		pacman_install grub os-prober
+		pacman_install grub
 		echo "grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=i386-pc --recheck $dest_disk" | \
 		arch-chroot /mnt
 	fi
@@ -683,7 +683,7 @@ fi
 
 install_xorg() {
 if [[ "$xorg" = 'yes' ]]; then
-	pacman_install xorg-server xorg-server-utils xorg-xinit xf86-video-vesa
+	pacman_install xorg-server xorg-server-utils xorg-xinit
 	# install desktop environment
 	case "$desktop_environment" in
 		no)	;;
@@ -708,7 +708,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.9'
+		echo 'archinstaller 0.5.9.2'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -825,12 +825,6 @@ fi
 message 'Installing base system..'
 pacstrap /mnt base
 
-# configure system
-configure_system
-
-# bootloader
-install_bootloader
-
 # install xorg
 install_xorg
 
@@ -839,6 +833,12 @@ if [[ "$install_packages" = 'yes' ]]; then
 	message 'Installing additional packages..'
 	pacman_install ${packages[@]} || :
 fi
+
+# configure system
+configure_system
+
+# bootloader
+install_bootloader
 
 # unmount
 if [[ "$manual_part" = 'yes' ]]; then
