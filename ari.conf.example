@@ -1,18 +1,16 @@
-#
-# Configuration file for archinstaller
-# 
-# Copy it to the same directory as archinstaller.
-#
+##############################################################
+# title		: ari.conf.example
+# description	: Example configuration for archinstaller
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 06.01.2014
-# version	: 0.5.9.2
+# date		: 07.01.2014
+# version	: 0.6
 # license	: GPLv2
-#
-# See README for additional options, and read the script for details about how options are processed.
-#
+##############################################################
+
+# See README for additional options, and read the script for
+# details about how options are processed.
 # EXAMPLE CONFIGURATION ONLY
-#
 
 uefi='no'
 bootloader='syslinux'
