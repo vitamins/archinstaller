@@ -13,26 +13,25 @@
 
 # functions
 config_fail() {
-echo -ne "\033[31m"
+echo -ne '\033[31m'
 echo "| Error, please check variable $1 !"
-echo -ne "\033[0m"
+echo -ne '\033[0m'
 exit 1
 }
 
 fail() {
-echo -ne "\033[31m"
-echo '| archinstaller:'
+echo -e '\033[31m| archinstaller:'
 echo "| Error, $1"
-echo -ne "\033[0m"
+echo -ne '\033[0m'
 exit 1
 }
 
 # wait 2 seconds to allow for reading the message
 message() {
-echo -e "\033[31m"
+echo -e '\033[31m'
 echo '| archinstaller:'
 echo "| $1"
-echo -e "\033[0m"
+echo -e '\033[0m'
 sleep 2
 }
 
@@ -49,9 +48,7 @@ echo $(( $num * $mult ))
 }
 
 check_conf() {
-echo -e "\033[31m"
-echo '| Checking configuration..'
-echo -ne "\033[0m"
+echo -e '\033[31m| Checking configuration..\033[0m'
 # confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 # edit_conf
@@ -253,13 +250,11 @@ else
 fi
 
 # no config_fail beyond this point
-echo -en "\033[32m"
-echo '| OK.'
-echo -e "\033[0m"
+echo -e '\033[32m| OK.\033[0m'
 }
 
 ask_confirm() {
-echo -e "\033[31m"
+echo -e '\033[31m'
 echo '---------------------------------------'
 if [[ "$manual_part" = 'no' ]]; then
 	echo 'The following drive will be formatted.'
@@ -269,12 +264,13 @@ else
 	findmnt -l -o TARGET,SOURCE -R /mnt
 fi
 echo '---------------------------------------'
-echo -ne "\033[0m"
+echo -ne '\033[0m'
 answer='x'
-while [[ "$answer" != 'YES' ]]; do
-	echo -n 'Continue? (YES/no) '
-	read answer
-	[[ "$answer" = 'no' ]] && fail 'script cancelled!'
+while [[ "$answer" != 'Y' ]]; do
+	echo -n 'Continue? (Y/n) '
+	read -n 2 -r answer
+	[[ "$answer" = 'n' ]] && fail 'script cancelled!'
+	echo
 done
 }
 
@@ -704,7 +700,7 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.5.9.2'
+		echo 'archinstaller 0.6'
 		echo 'Copyright (C) 2013 Dennis Anfossi'
 		echo 'License GPLv2'
 		echo 'This is free software: you are free to change and redistribute it.'
@@ -754,11 +750,11 @@ key_size='256'
 # check if configuration file is in the current working directory
 [[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd) !"
 
-echo -ne "\033[31m"
+echo -ne '\033[31m'
 echo '---------------------------------------'
 echo '      Welcome to archinstaller!'
 echo '---------------------------------------'
-echo -ne "\033[0m"
+echo -ne '\033[0m'
 
 # source configuration file
 source ./ari.conf
@@ -776,13 +772,10 @@ check_conf
 [[ -z "$k_modules" ]] && configure_modules='no' || configure_modules='yes'
 
 # check internet connection
-echo -ne "\033[31m"
-echo '| Checking internet connection..'
+echo -e '\033[31m| Checking internet connection..'
 curl --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
 fail 'please check the internet connection!'
-echo -ne "\033[32m"
-echo '| OK.'
-echo -ne "\033[0m"
+echo -e '\033[32m| OK.\033[0m'
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
@@ -833,11 +826,11 @@ else
 fi
 
 # finish
-echo -e "\033[31m"
+echo -e '\033[31m'
 echo '---------------------------------------'
 echo '        Installation completed!'
 echo '     Reboot the computer: # reboot'
 echo '---------------------------------------'
-echo -ne "\033[0m"
+echo -ne '\033[0m'
 
 exit 0
