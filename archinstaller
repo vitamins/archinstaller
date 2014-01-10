@@ -454,22 +454,13 @@ Y" | gdisk "$dest_disk"
 	fi
 fi
 
-# encrypt home partition
-if [[ "$encrypt_home" = 'yes' ]]; then
-	modprobe dm_mod
-	## erase partition with /dev/zero
-	message 'Setting up Encryption. Secure erasure of partition..'
-	dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_part_number" || sync
-	message 'Please enter a new encryption passphrase.'
-	## map physical partition to LUKS
-	cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat \
-"$dest_disk""$home_part_number"
-	## open encrypted volume
-	message 'To unlock the container, enter the passphrase again.'
-	cryptsetup open "$dest_disk""$home_part_number" home
-fi
-
 # Create and mount filesystems
+## root
+message 'Formatting root..'
+mkfs."$fstype" "$dest_disk""$root_part_number"
+message 'Mounting root..'
+mount -t "$fstype" "$dest_disk""$root_part_number" /mnt
+
 ## ESP
 if [[ "$uefi" = 'yes' ]]; then
 	message 'Formatting ESP..'
@@ -486,21 +477,29 @@ if [[ "$swap" = 'yes' ]]; then
 	swapon "$dest_disk""$swap_part_number"
 fi
 
-## root
-message 'Formatting root..'
-mkfs."$fstype" "$dest_disk""$root_part_number"
-message 'Mounting root..'
-mount -t "$fstype" "$dest_disk""$root_part_number" /mnt
-
 ## home
 if [[ "$home" = 'yes' ]]; then
-	message 'Formatting home..'
 	if [[ "$encrypt_home" = 'yes' ]]; then
+		## encrypt home
+		modprobe dm_mod
+		## erase partition with /dev/zero
+		message 'Setting up Encryption. Secure erasure of partition..'
+		dd bs=4M iflag=nocache oflag=direct if=/dev/zero \
+of="$dest_disk""$home_part_number" || sync
+		message 'Please enter a new encryption passphrase.'
+		## map physical partition to LUKS
+		cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat \
+"$dest_disk""$home_part_number"
+		## open encrypted volume
+		message 'To unlock the container, enter the passphrase again.'
+		cryptsetup open "$dest_disk""$home_part_number" home
+		message 'Formatting home..'
 		mkfs."$fstype" /dev/mapper/home
 		mkdir /mnt/home
 		message 'Mounting home..'
 		mount -t "$fstype" /dev/mapper/home /mnt/home
 	else
+		message 'Formatting home..'
 		mkfs."$fstype" "$dest_disk""$home_part_number"
 		mkdir /mnt/home
 		message 'Mounting home..'
@@ -607,8 +606,7 @@ fi
 if [[ "$set_password" = 'yes' ]]; then
 	message 'Setting password for root user..'
 	## loop if entered passwords do not match
-	while :
-	do
+	while :; do
 		passwd -R /mnt root && break
 	done
 fi
@@ -619,8 +617,7 @@ if [[ "$add_user" = 'yes' ]]; then
 	## set user password
 	if [[ "$set_password" = 'yes' ]]; then
 		message "Setting password for $username.."
-		while :
-		do
+		while :; do
 			passwd -R /mnt "$username" && break
 		done
 	fi
