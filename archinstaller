@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 07.01.2014
-# version	: 0.6
+# date		: 10.01.2014
+# version	: 0.6.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -700,18 +700,22 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		echo 'archinstaller 0.6'
-		echo 'Copyright (C) 2013 Dennis Anfossi'
-		echo 'License GPLv2'
-		echo 'This is free software: you are free to change and redistribute it.'
-		echo 'There is NO WARRANTY, to the extent permitted by law.'
-		echo 'Written by Dennis Anfossi & teateawhy.'
+		cat << END_INFO
+archinstaller 0.6.1
+Copyright (C) 2013 Dennis Anfossi
+License GPLv2
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Written by Dennis Anfossi & teateawhy.
+END_INFO
 		exit 0
 	elif [[ "$1" = '-h' || "$1" = '--help' ]]; then
-		echo 'Run without arguments to start the installer.'
-		echo '  -h  --help        display this help and exit'
-		echo '  -v  --version     output version information and exit'
-		echo 'For complete documentation see README.md!'
+		cat << END_INFO
+Run without arguments to start the installer.
+  -h  --help        display this help and exit
+  -v  --version     output version information and exit
+For the complete documentation see README.
+END_INFO
 		exit 0
 	else
 		fail "invalid option $1"
