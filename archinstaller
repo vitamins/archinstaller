@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 10.01.2014
-# version	: 0.6.1
+# date		: 11.01.2014
+# version	: 0.6.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -66,8 +66,8 @@ totalsize=0
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
-	[[ -z "$root_part_number" ]] && config_fail 'root_part_number'
-	[[ -b "$dest_disk""$root_part_number" ]] || config_fail 'root_part_number'
+	[[ -z "$root_num" ]] && config_fail 'root_num'
+	[[ -b "$dest_disk""$root_num" ]] || config_fail 'root_num'
 	# determine fstype of /mnt/boot or /mnt
 	fstype=$(findmnt -no FSTYPE /mnt/boot) || fstype=$(findmnt -no FSTYPE /mnt)
 	encrypt_home='no'
@@ -89,7 +89,7 @@ fail 'found mounted filesystem on destination disk!'
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
 	# root_size
-	if [[ "$root_size" = 'free' ]]; then
+	if [[ "$root_size" = '0' ]]; then
 		[[ "$home" = 'no' ]] || config_fail 'home'
 	else
 		[[ -z "$root_size" ]] && config_fail 'root_size'
@@ -99,7 +99,7 @@ fail 'found mounted filesystem on destination disk!'
 	# home
 	if [[ "$home" = 'yes' ]]; then
 		## home_size
-		if [[ "$home_size" != 'free' ]]; then
+		if [[ "$home_size" != '0' ]]; then
 			[[ -z "$home_size" ]] && config_fail 'home_size'
 			[[ "$home_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'home_size'
 			totalsize=$(( totalsize + $(unit_to_bytes "$home_size") ))
@@ -277,8 +277,9 @@ done
 make_part() {
 # prepare disk
 message 'Preparing disk..'
+sgdisk -Z "$dest_disk"
+dd bs=1K count=1024 iflag=nocache oflag=direct if=/dev/zero of="$dest_disk"
 wipefs -a "$dest_disk"
-dd bs=1K count=17 iflag=nocache oflag=direct if=/dev/zero of="$dest_disk"
 blockdev --rereadpt "$dest_disk"; sync; blockdev --rereadpt "$dest_disk"
 
 # partitioning
@@ -287,35 +288,35 @@ message 'Creating partitions..'
 ## partition layout
 if [[ "$uefi" = 'yes' ]]; then
 	if [[ "$swap" = 'yes' ]]; then
-		efi_part_number=1
-		swap_part_number=2
-		root_part_number=3
-		home_part_number=4
+		esp_num=1
+		swap_num=2
+		root_num=3
+		home_num=4
 	else
-		efi_part_number=1
-		root_part_number=2
-		home_part_number=3
+		esp_num=1
+		root_num=2
+		home_num=3
 	fi
 else
 	if [[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]]; then
 		if [[ "$swap" = 'yes' ]]; then
-			bios_part_number=1
-			swap_part_number=2
-			root_part_number=3
-			home_part_number=4
+			bios_num=1
+			swap_num=2
+			root_num=3
+			home_num=4
 		else
-			bios_part_number=1
-			root_part_number=2
-			home_part_number=3
+			bios_num=1
+			root_num=2
+			home_num=3
 		fi
 	else
 		if [[ "$swap" = 'yes' ]]; then
-			swap_part_number=1
-			root_part_number=2
-			home_part_number=3
+			swap_num=1
+			root_num=2
+			home_num=3
 		else
-			root_part_number=1
-			home_part_number=2
+			root_num=1
+			home_num=2
 		fi
 	fi
 fi
@@ -323,13 +324,12 @@ fi
 ## MBR
 if [[ "$partition_table" = 'mbr' ]]; then
 
-# DO NOT INSERT WHITESPACE INTO ECHO, OTHERWISE GDISK/FDISK WILL FAIL
-
+# DO NOT INSERT WHITESPACE INTO ECHO, OTHERWISE FDISK FAILS
 	## swap partition
 	if [[ "$swap" = 'yes' ]]; then
 		echo -e "n\n\
 p\n\
-"$swap_part_number"\n\
+"$swap_num"\n\
 \n\
 +"$swap_size"\n\
 t\n\
@@ -339,17 +339,17 @@ w" | fdisk "$dest_disk"
 	fi
 
 	## root partition
-	if [[ "$root_size" = 'free' ]]; then
+	if [[ "$root_size" = '0' ]]; then
 		echo -e "n\n\
 p\n\
-"$root_part_number"\n\
+"$root_num"\n\
 \n\
 \n\
 w" | fdisk "$dest_disk"
 	else
 		echo -e "n\n\
 p\n\
-"$root_part_number"\n\
+"$root_num"\n\
 \n\
 +"$root_size"\n\
 w" | fdisk "$dest_disk"
@@ -358,17 +358,17 @@ w" | fdisk "$dest_disk"
 
 	## home partition
 	if [[ "$home" = 'yes' ]]; then
-		if [[ "$home_size" = 'free' ]]; then
+		if [[ "$home_size" = '0' ]]; then
 			echo -e "n\n\
 p\n\
-"$home_part_number"\n\
+"$home_num"\n\
 \n\
 \n\
 w" | fdisk "$dest_disk"
 		else
 			echo -e "n\n\
 p\n\
-"$home_part_number"\n\
+"$home_num"\n\
 \n\
 +"$home_size"\n\
 w" | fdisk "$dest_disk"
@@ -378,103 +378,53 @@ w" | fdisk "$dest_disk"
 else
 	## EFI system partition
 	if [[ "$uefi" = 'yes' ]]; then
-		echo -e "n\n\
-"$efi_part_number"\n\
-\n\
-+"$esp_size"\n\
-EF00\n\
-w\n\
-Y" | gdisk "$dest_disk"
+		sgdisk -n "$esp_num":0:+"$esp_size" -t "$esp_num":EF00 "$dest_disk"
 		sleep 1
 	else
 		## BIOS boot partition
 		if [[ "$bootloader" = 'grub' ]]; then
-			echo -e "n\n\
-"$bios_part_number"\n\
-\n\
-+1007K\n\
-EF02\n\
-w\n\
-Y" | gdisk "$dest_disk"
+			sgdisk -n "$bios_num":0:+1007K -t "$bios_num":EF02 "$dest_disk"
 			sleep 1
 		fi
 	fi
 
 	## swap partition
 	if [[ "$swap" = 'yes' ]]; then
-		echo -e "n\n\
-"$swap_part_number"\n\
-\n\
-+"$swap_size"\n\
-8200\n\
-w\n\
-Y" | gdisk "$dest_disk"
+		sgdisk -n "$swap_num":0:+"$swap_size" -t "$swap_num":8200 "$dest_disk"
 		sleep 1
 	fi
 
 	## root partition
-	if [[ "$root_size" = 'free' ]]; then
-		echo -e "n\n\
-"$root_part_number"\n\
-\n\
-\n\
-8300\n\
-w\n\
-Y" | gdisk "$dest_disk"
-	else
-		echo -e "n\n\
-"$root_part_number"\n\
-\n\
-+"$root_size"\n\
-8300\n\
-w\n\
-Y" | gdisk "$dest_disk"
-	fi
+	sgdisk -n "$root_num":0:+"$root_size" -t "$root_num":8300 "$dest_disk"
 	sleep 1
 
 	## home partition
 	if [[ "$home" = 'yes' ]]; then
-		if [[ "$home_size" = 'free' ]]; then
-			echo -e "n\n\
-"$home_part_number"\n\
-\n\
-\n\
-8300\n\
-w\n\
-Y" | gdisk "$dest_disk"
-		else
-			echo -e "n\n\
-"$home_part_number"\n\
-\n\
-+"$home_size"\n\
-8300\n\
-w\n\
-Y" | gdisk "$dest_disk"
-		fi
+		sgdisk -n "$home_num":0:+"$home_size" -t "$home_num":8300 "$dest_disk"
 	fi
 fi
 
 # Create and mount filesystems
 ## root
 message 'Formatting root..'
-mkfs."$fstype" "$dest_disk""$root_part_number"
+mkfs."$fstype" "$dest_disk""$root_num"
 message 'Mounting root..'
-mount -t "$fstype" "$dest_disk""$root_part_number" /mnt
+mount -t "$fstype" "$dest_disk""$root_num" /mnt
 
 ## ESP
 if [[ "$uefi" = 'yes' ]]; then
 	message 'Formatting ESP..'
-	mkfs.vfat -F32 "$dest_disk""$efi_part_number"
+	mkfs.vfat -F32 "$dest_disk""$efi_num"
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
-	mount -t vfat "$dest_disk""$efi_part_number" /mnt/boot
+	mount -t vfat "$dest_disk""$efi_num" /mnt/boot
 fi
 
 ## swap
 if [[ "$swap" = 'yes' ]]; then
 	message 'Formatting swap..'
-	mkswap "$dest_disk""$swap_part_number"
-	swapon "$dest_disk""$swap_part_number"
+	mkswap "$dest_disk""$swap_num"
+	swapon "$dest_disk""$swap_num"
 fi
 
 ## home
@@ -484,15 +434,14 @@ if [[ "$home" = 'yes' ]]; then
 		modprobe dm_mod
 		## erase partition with /dev/zero
 		message 'Setting up Encryption. Secure erasure of partition..'
-		dd bs=4M iflag=nocache oflag=direct if=/dev/zero \
-of="$dest_disk""$home_part_number" || sync
+		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_num" || sync
 		message 'Please enter a new encryption passphrase.'
 		## map physical partition to LUKS
-		cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" luksFormat \
-"$dest_disk""$home_part_number"
+		cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" \
+luksFormat "$dest_disk""$home_num"
 		## open encrypted volume
 		message 'To unlock the container, enter the passphrase again.'
-		cryptsetup open "$dest_disk""$home_part_number" home
+		cryptsetup open "$dest_disk""$home_num" home
 		message 'Formatting home..'
 		mkfs."$fstype" /dev/mapper/home
 		mkdir /mnt/home
@@ -500,10 +449,10 @@ of="$dest_disk""$home_part_number" || sync
 		mount -t "$fstype" /dev/mapper/home /mnt/home
 	else
 		message 'Formatting home..'
-		mkfs."$fstype" "$dest_disk""$home_part_number"
+		mkfs."$fstype" "$dest_disk""$home_num"
 		mkdir /mnt/home
 		message 'Mounting home..'
-		mount -t "$fstype" "$dest_disk""$home_part_number" /mnt/home
+		mount -t "$fstype" "$dest_disk""$home_num" /mnt/home
 	fi
 fi
 }
@@ -540,8 +489,8 @@ configure_system() {
 message 'Configuring system..'
 # crypttab
 if [[ "$encrypt_home" = 'yes' ]]; then
-	home_part_uuid=$(lsblk -dno UUID "$dest_disk""$home_part_number")
-	echo "home UUID=$home_part_uuid none luks,timeout=60s" >> /mnt/etc/crypttab
+	home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
+	echo "home UUID=$home_uuid none luks,timeout=60s" >> /mnt/etc/crypttab
 	[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/etc/crypttab
 fi
 
@@ -645,12 +594,12 @@ default arch
 timeout 5
 END_GUMMIBOOT
 
-		root_part_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_part_number")
+		root_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_num")
 		cat << END_GUMMIBOOT > /mnt/boot/loader/entries/arch.conf
 title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
-options	root=PARTUUID=$root_part_partuuid rw
+options	root=PARTUUID=$root_partuuid rw
 END_GUMMIBOOT
 		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/loader/entries/arch.conf
 
@@ -667,7 +616,7 @@ else
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
-		root_part_uuid=$(lsblk -dno UUID "$dest_disk""$root_part_number")
+		root_uuid=$(lsblk -dno UUID "$dest_disk""$root_num")
 		cat << END_SYSLINUX > /mnt/boot/syslinux/syslinux.cfg
 PROMPT 1
 TIMEOUT 50
@@ -675,12 +624,12 @@ DEFAULT arch
 
 LABEL arch
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$root_part_uuid rw
+	APPEND root=UUID=$root_uuid rw
 	INITRD ../initramfs-linux.img
 
 LABEL archfallback
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$root_part_uuid rw
+	APPEND root=UUID=$root_uuid rw
 	INITRD ../initramfs-linux-fallback.img
 END_SYSLINUX
 		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/syslinux/syslinux.cfg
@@ -698,7 +647,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << END_INFO
-archinstaller 0.6.1
+archinstaller 0.6.2
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
@@ -740,7 +689,7 @@ edit_conf='yes'
 manual_part='no'
 esp_size='512M'
 home='yes'
-home_size='free'
+home_size='0'
 cipher='aes-xts-plain64'
 hash_alg='sha1'
 key_size='256'
