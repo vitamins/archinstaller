@@ -62,7 +62,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- 0
 	| /
 	---------- End
-   => options: swap='no'; home='no'; root_size='free';
+   => options: swap='no'; home='no'; root_size='0';
 
 1. example:
    Root partition of size X GiB, with free space left.
@@ -80,7 +80,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- Y GiB
 	| /
 	---------- End
-  => options: swap='yes'; home='no'; swap_size='YG'; root_size='free';
+  => options: swap='yes'; home='no'; swap_size='YG'; root_size='0';
 
 3. example:
    Swap partition of size Y GiB, root partition of size X GiB.
@@ -100,7 +100,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- X GiB
 	| /home
 	---------- End
-  => options: swap='no'; (home='yes'); root_size='XG'; (home_size='free');
+  => options: swap='no'; (home='yes'); root_size='XG'; (home_size='0');
 
 5. example:
    Root partition of size X GiB, home partition of size Z GiB.
@@ -124,7 +124,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	| /home
 	---------- End
    => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
-               (home_size='free');
+               (home_size='0');
 
 7. example:
    Swap partition of size Y GiB, root partition of size X GiB, home partition
@@ -143,12 +143,12 @@ A list of possible partition layouts that can be created by archinstaller. For s
 </pre>
 
 ### Manual Partitioning
-If you want to create the partitions and filesystems on your own, set "manual_part" to "yes". Then the following assumptions are made by the script:
+If you want to create the partitions and filesystems on your own, set "manual_part" to 'yes'. Then the following assumptions are made by the script:
 - The partitions contain newly created filesystems.
 - The root partition is mounted to /mnt.
 - If using UEFI, the ESP is mounted to /mnt/boot.
 - Any other seperate partition like /usr or /var is mounted below the /mnt/ directory.
-- The variables "dest_disk" and "root_partition_number" point to the root partition. This information is required for installing the bootloader.
+- The variables "dest_disk" and "root_num" point to the root partition. This information is required for installing the bootloader.
 - The variable "partition_table" is set according to the partition table used for the root partition.
 - The partitions are manually unmounted before rebooting.
 
@@ -181,4 +181,4 @@ Should one of the packages not be found in the repositories, e.g. if you have mi
 Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation. When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
-If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to "yes". Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
+If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
