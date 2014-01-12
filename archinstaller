@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 11.01.2014
-# version	: 0.6.2
+# date		: 12.01.2014
+# version	: 0.6.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -463,6 +463,7 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 
 install_xorg() {
 if [[ "$xorg" = 'yes' ]]; then
+	message 'Installing xorg packages..'
 	pacman_install xorg-server xorg-server-utils xorg-xinit
 	# install desktop environment
 	case "$desktop_environment" in
@@ -505,10 +506,10 @@ echo "LANG=${locale%% *}" > /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
 # console font and keymap
-cat << END_VCONSOLE > /mnt/etc/vconsole.conf
+cat << EOF > /mnt/etc/vconsole.conf
 KEYMAP=$keymap
 FONT=$font
-END_VCONSOLE
+EOF
 
 # timezone
 ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
@@ -589,18 +590,18 @@ if [[ "$uefi" = 'yes' ]]; then
 		arch-chroot /mnt gummiboot install
 
 		## configure gummiboot
-		cat << END_GUMMIBOOT > /mnt/boot/loader/loader.conf
+		cat << EOF > /mnt/boot/loader/loader.conf
 default arch
 timeout 5
-END_GUMMIBOOT
+EOF
 
 		root_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_num")
-		cat << END_GUMMIBOOT > /mnt/boot/loader/entries/arch.conf
+		cat << EOF > /mnt/boot/loader/entries/arch.conf
 title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
 options	root=PARTUUID=$root_partuuid rw
-END_GUMMIBOOT
+EOF
 		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/loader/entries/arch.conf
 
 	fi
@@ -617,7 +618,7 @@ else
 
 		## configure syslinux
 		root_uuid=$(lsblk -dno UUID "$dest_disk""$root_num")
-		cat << END_SYSLINUX > /mnt/boot/syslinux/syslinux.cfg
+		cat << EOF > /mnt/boot/syslinux/syslinux.cfg
 PROMPT 1
 TIMEOUT 50
 DEFAULT arch
@@ -631,7 +632,7 @@ LABEL archfallback
 	LINUX ../vmlinuz-linux
 	APPEND root=UUID=$root_uuid rw
 	INITRD ../initramfs-linux-fallback.img
-END_SYSLINUX
+EOF
 		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/syslinux/syslinux.cfg
 	else
 		## install grub
@@ -646,22 +647,22 @@ fi
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
-		cat << END_INFO
-archinstaller 0.6.2
+		cat << EOF
+archinstaller 0.6.3
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 Written by Dennis Anfossi & teateawhy.
-END_INFO
+EOF
 		exit 0
 	elif [[ "$1" = '-h' || "$1" = '--help' ]]; then
-		cat << END_INFO
+		cat << EOF
 Run without arguments to start the installer.
   -h  --help        display this help and exit
   -v  --version     output version information and exit
 For the complete documentation see README.
-END_INFO
+EOF
 		exit 0
 	else
 		fail "invalid option $1"
@@ -701,9 +702,11 @@ key_size='256'
 [[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd) !"
 
 echo -ne '\033[31m'
-echo '---------------------------------------'
-echo '      Welcome to archinstaller!'
-echo '---------------------------------------'
+cat << EOF
+---------------------------------------
+       Welcome to archinstaller!
+---------------------------------------
+EOF
 echo -ne '\033[0m'
 
 # source configuration file
@@ -777,10 +780,12 @@ fi
 
 # finish
 echo -e '\033[31m'
-echo '---------------------------------------'
-echo '        Installation completed!'
-echo '     Reboot the computer: # reboot'
-echo '---------------------------------------'
+cat << EOF
+---------------------------------------
+        Installation completed!
+     Reboot the computer: # reboot
+---------------------------------------
+EOF
 echo -ne '\033[0m'
 
 exit 0
