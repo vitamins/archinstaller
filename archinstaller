@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 12.01.2014
-# version	: 0.6.3
+# date		: 13.01.2014
+# version	: 0.6.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -434,14 +434,14 @@ if [[ "$home" = 'yes' ]]; then
 		modprobe dm_mod
 		## erase partition with /dev/zero
 		message 'Setting up Encryption. Secure erasure of partition..'
-		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_num" || sync
+		dd bs=4M if=/dev/urandom of="$dest_disk""$home_num" || sync
 		message 'Please enter a new encryption passphrase.'
 		## map physical partition to LUKS
-		cryptsetup -qy -c "$cipher" -h "$hash_alg" -s "$key_size" \
+		cryptsetup --use-random -qy -c "$cipher" -h "$hash_alg" -s "$key_size" \
 luksFormat "$dest_disk""$home_num"
 		## open encrypted volume
 		message 'To unlock the container, enter the passphrase again.'
-		cryptsetup open "$dest_disk""$home_num" home
+		cryptsetup open --type luks "$dest_disk""$home_num" home
 		message 'Formatting home..'
 		mkfs."$fstype" /dev/mapper/home
 		mkdir /mnt/home
@@ -648,7 +648,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.3
+archinstaller 0.6.4
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
