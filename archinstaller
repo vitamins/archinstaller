@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 13.01.2014
-# version	: 0.6.4
+# date		: 18.01.2014
+# version	: 0.6.4.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -20,7 +20,7 @@ exit 1
 }
 
 fail() {
-echo -e '\033[31m| archinstaller:'
+echo -ne '\033[31m'
 echo "| Error, $1"
 echo -ne '\033[0m'
 exit 1
@@ -65,7 +65,7 @@ dest_disk_size=$(blockdev --getsize64 "$dest_disk")
 totalsize=0
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
-	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found on /mnt!'
+	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at /mnt!'
 	[[ -z "$root_num" ]] && config_fail 'root_num'
 	[[ -b "$dest_disk""$root_num" ]] || config_fail 'root_num'
 	# determine fstype of /mnt/boot or /mnt
@@ -228,12 +228,13 @@ if [[ "$xorg" = 'yes' ]]; then
 	## desktop_environment
 	case "$desktop_environment" in
 		no)		;;
-		xfce4)		;;
+		cinnamon)	;;
+		enlightenment17);;
 		gnome)		;;
 		kde)		;;
-		cinnamon)	;;
 		lxde)		;;
-		enlightenment17);;
+		mate)		;;
+		xfce4)		;;
 		*)	config_fail 'desktop_environment';;
 	esac
 	### display_manager
@@ -468,12 +469,13 @@ if [[ "$xorg" = 'yes' ]]; then
 	# install desktop environment
 	case "$desktop_environment" in
 		no)	;;
-		xfce4)	pacman_install xfce4 xfce4-goodies;;
+		cinnamon)	pacman_install cinnamon;;
+		enlightenment17)	pacman_install enlightenment17;;
 		gnome)	pacman_install gnome gnome-extra;;
 		kde)	pacman_install kde;;
-		cinnamon)	pacman_install cinnamon;;
 		lxde)	pacman_install lxde;;
-		enlightenment17)	pacman_install enlightenment17;;
+		mate)	pacman_install mate mate-extra;;
+		xfce4)	pacman_install xfce4 xfce4-goodies;;
 	esac
 	# install display manager
 	case "$display_manager" in
@@ -648,7 +650,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.4
+archinstaller 0.6.4.1
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
