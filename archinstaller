@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 22.01.2014
-# version	: 0.6.5
+# date		: 24.01.2014
+# version	: 0.6.5.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -335,7 +335,7 @@ p\n\
 +"$swap_size"\n\
 t\n\
 82\n\
-w" | fdisk "$dest_disk"
+w" | fdisk -t dos "$dest_disk"
 		sleep 1
 	fi
 
@@ -346,14 +346,14 @@ p\n\
 "$root_num"\n\
 \n\
 \n\
-w" | fdisk "$dest_disk"
+w" | fdisk -t dos "$dest_disk"
 	else
 		echo -e "n\n\
 p\n\
 "$root_num"\n\
 \n\
 +"$root_size"\n\
-w" | fdisk "$dest_disk"
+w" | fdisk -t dos "$dest_disk"
 	fi
 	sleep 1
 
@@ -365,14 +365,14 @@ p\n\
 "$home_num"\n\
 \n\
 \n\
-w" | fdisk "$dest_disk"
+w" | fdisk -t dos "$dest_disk"
 		else
 			echo -e "n\n\
 p\n\
 "$home_num"\n\
 \n\
 +"$home_size"\n\
-w" | fdisk "$dest_disk"
+w" | fdisk -t dos "$dest_disk"
 		fi
 	fi
 ## GPT
@@ -650,7 +650,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.5
+archinstaller 0.6.5.1
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
