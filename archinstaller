@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 24.01.2014
-# version	: 0.6.5.1
+# date		: 13.02.2014
+# version	: 0.6.5.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -433,9 +433,9 @@ if [[ "$home" = 'yes' ]]; then
 	if [[ "$encrypt_home" = 'yes' ]]; then
 		## encrypt home
 		modprobe dm_mod
-		## erase partition with /dev/zero
+		## overwrite partition with zeroes
 		message 'Setting up Encryption. Secure erasure of partition..'
-		dd bs=4M if=/dev/urandom of="$dest_disk""$home_num" || sync
+		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_num" || sync
 		## map physical partition to LUKS
 		message 'Please enter a new encryption passphrase.'
 		cryptsetup --use-random -qy -c "$cipher" -h "$hash_alg" -s "$key_size" \
@@ -650,7 +650,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.5.1
+archinstaller 0.6.5.2
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
