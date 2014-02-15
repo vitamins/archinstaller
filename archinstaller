@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 13.02.2014
-# version	: 0.6.5.2
+# date		: 15.02.2014
+# version	: 0.6.5.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -415,10 +415,10 @@ mount -t "$fstype" "$dest_disk""$root_num" /mnt
 ## ESP
 if [[ "$uefi" = 'yes' ]]; then
 	message 'Formatting ESP..'
-	mkfs.vfat -F32 "$dest_disk""$efi_num"
+	mkfs.vfat -F32 "$dest_disk""$esp_num"
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
-	mount -t vfat "$dest_disk""$efi_num" /mnt/boot
+	mount -t vfat "$dest_disk""$esp_num" /mnt/boot
 fi
 
 ## swap
