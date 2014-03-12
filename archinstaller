@@ -5,8 +5,8 @@
 # description	: Automated installation script for arch linux
 # authors	: Dennis Anfossi & teateawhy
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 15.02.2014
-# version	: 0.6.5.3
+# date		: 12.03.2014
+# version	: 0.6.5.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -532,7 +532,7 @@ echo "$hostname" > /mnt/etc/hostname
 # network service
 if [[ "$network" != 'no' ]]; then
 	## fix wired network interface name to eth0
-	touch /mnt/etc/udev/rules.d/80-net-name-slot.rules
+	touch /mnt/etc/udev/rules.d/80-net-setup-link.rules
 	case "$network" in
 		dhcpcd)	systemctl --root=/mnt enable dhcpcd@eth0.service;;
 		netctl-dhcp)	cp /mnt/etc/netctl/examples/ethernet-dhcp \
@@ -650,7 +650,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.5.2
+archinstaller 0.6.5.4
 Copyright (C) 2013 Dennis Anfossi
 License GPLv2
 This is free software: you are free to change and redistribute it.
