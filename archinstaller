@@ -280,7 +280,7 @@ make_part() {
 message 'Preparing disk..'
 sgdisk -Z "$dest_disk"
 dd bs=1K count=1024 iflag=nocache oflag=direct if=/dev/zero of="$dest_disk"
-wipefs -a "$dest_disk"
+wipefs -a "$dest_disk" ; dd < /dev/zero > "$dest_disk" count=100 bs=512
 blockdev --rereadpt "$dest_disk"; sync; blockdev --rereadpt "$dest_disk"
 
 # partitioning
