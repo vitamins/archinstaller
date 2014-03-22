@@ -10,8 +10,8 @@ Automated installation script for arch linux written in bash.
 ### packages
 The required utilities can be installed with the following packages:
 - arch-install-scripts version 12-1 (30 Nov 2013) or later
+- gptfdisk
 - For UEFI support: dosfstools
-- For GPT support: gptfdisk
 - For btrfs filesystems: btrfs-progs
 - For nilfs filesystems: nilfs-utils
 
@@ -32,7 +32,6 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 ## Features
 - Configured in a single file
 - Can run completely automated
-- Handles GPT and MBR partition tables
 - Supported bootloaders: GRUB or gummiboot for UEFI, GRUB or syslinux for BIOS
 - Configure basic system settings like language,timezone,keymap and hostname
 - Optionally create separate partitions for swap and home
@@ -48,9 +47,9 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 
 ## Other
 ### Partitioning
+Only GPT, not MBR, is supported as partition table.
 A simple partitioning tool that creates partitions as well as filesystems is included in the script. It is controlled by variables in the configuration file. If you want to create more advanced partition layouts, see paragraph "Manual Partitioning".
 The partition sizes are set via variables "swap_size", "root_size", and "home_size". The size must consist of a number with the letter K for Kib, M for Mib, G for Gib or T for Tib appended.
-For the partition table choose between MBR and GPT by variable "partition_table". For UEFI booting, only GPT is supported as partition table.
 The order of the partitions is from first to last ESP, swap, root, and home.
 
 #### Examples
@@ -181,4 +180,4 @@ Should one of the packages not be found in the repositories, e.g. if you have mi
 Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation. When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
-If you want to encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like cipher, hash algorithm and key size can be configured in ari.conf. The respective variables are "cipher","hash_alg" and "key_size". Run `cryptsetup benchmark` for a list of available options and their performance. The defaults are set to cipher='aes-xts-plain64', hash_alg='sha1' and key_size='256'.
+To encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like cipher, hash algorithm and key size can be configured in ari.conf. Run `cryptsetup benchmark` for a list of available options and their performance.
