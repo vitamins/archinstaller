@@ -3,52 +3,50 @@
 ##############################################################
 # title		: archinstaller
 # description	: Automated installation script for arch linux
-# authors	: Dennis Anfossi & teateawhy
+# authors	: Dennis Anfossi,
+#		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 12.03.2014
-# version	: 0.6.5.4
+# date		: 22.03.2014
+# version	: 0.6.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
+# colors
+unset ALL_OFF GREEN RED
+ALL_OFF='\e[1;0m'
+GREEN='\e[1;32m'
+RED='\e[1;31m'
+readonly ALL_OFF GREEN RED
+
 # functions
 config_fail() {
-echo -ne '\033[31m'
-echo "| Error, please check variable $1 !"
-echo -ne '\033[0m'
+printf "$RED"
+printf '%s\n' "| Error, please check variable ${1} !"
+printf "$ALL_OFF"
 exit 1
 }
 
 fail() {
-echo -ne '\033[31m'
-echo "| Error, $1"
-echo -ne '\033[0m'
+printf "$RED"
+printf '%s\n' "| Error, ${1}"
+printf "$ALL_OFF"
 exit 1
 }
 
-# wait 2 seconds to allow for reading the message
+# wait 2 seconds for the user to read the message
 message() {
-echo -e '\033[31m'
-echo '| archinstaller:'
-echo "| $1"
-echo -e '\033[0m'
+printf "${RED}\n"
+printf '%s\n' '| archinstaller:'
+printf '%s\n' "| ${1}"
+printf "${ALL_OFF}\n"
 sleep 2
 }
 
-unit_to_bytes() {
-x=$1
-case ${x: -1} in
-	K)	mult='1024';;
-	M)	mult='1048576';;
-	G)	mult='1073741824';;
-	T)	mult='1099511627776';;
-esac
-num=${x%?}
-echo $(( $num * $mult ))
-}
-
 check_conf() {
-echo -e '\033[31m| Checking configuration..\033[0m'
+printf "$RED"
+printf '%s\n' '| Checking configuration..'
+printf "$ALL_OFF"
 # confirm
 [[ "$confirm" = 'yes' || "$confirm" = 'no' ]] || config_fail 'confirm'
 # edit_conf
@@ -59,10 +57,8 @@ else
 fi
 # dest_disk
 [[ -z "$dest_disk" ]] && config_fail 'dest_disk'
-## check if dest_disk is a valid block device
+## check if dest_disk is really a disk
 [[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
-dest_disk_size=$(blockdev --getsize64 "$dest_disk")
-totalsize=0
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at /mnt!'
@@ -84,7 +80,6 @@ fail 'found mounted filesystem on destination disk!'
 		## swap_size
 		[[ -z "$swap_size" ]] && config_fail 'swap_size'
 		[[ "$swap_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'swap_size'
-		totalsize=$(unit_to_bytes "$swap_size")
 	else
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
@@ -94,7 +89,6 @@ fail 'found mounted filesystem on destination disk!'
 	else
 		[[ -z "$root_size" ]] && config_fail 'root_size'
 		[[ "$root_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'root_size'
-		totalsize=$(( totalsize + $(unit_to_bytes "$root_size") ))
 	fi
 	# home
 	if [[ "$home" = 'yes' ]]; then
@@ -102,16 +96,10 @@ fail 'found mounted filesystem on destination disk!'
 		if [[ "$home_size" != '0' ]]; then
 			[[ -z "$home_size" ]] && config_fail 'home_size'
 			[[ "$home_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'home_size'
-			totalsize=$(( totalsize + $(unit_to_bytes "$home_size") ))
 		fi
 		## encrypt_home
 		if [[ "$encrypt_home" = 'yes' ]]; then
-			### cipher
-			[[ -z "$cipher" ]] && config_fail 'cipher'
-			### hash_alg
-			[[ -z "$hash_alg" ]] && config_fail 'hash_alg'
-			### key_size
-			[[ -z "$key_size" ]] && config_fail 'key_size'
+			[[ -z "$cryptsetup_options" ]] && config_fail 'cryptsetup_options'
 		else
 			[[ "$encrypt_home" = 'no' ]] || config_fail 'encrypt_home'
 		fi
@@ -136,14 +124,6 @@ fail 'please install the reiserfsprogs package!';;
 		*)	config_fail 'fstype';;
 	esac
 fi
-# partition_table
-if [[ "$partition_table" = 'gpt' ]]; then
-	if [[ "$manual_part" = 'no' ]]; then
-		type gdisk > /dev/null || fail 'please install the gptfdisk package!'
-	fi
-else
-	[[ "$partition_table" = 'mbr' ]] || config_fail 'partition_table'
-fi
 # uefi
 if [[ "$uefi" = 'yes' ]]; then
 	## check if install host is booted in uefi mode
@@ -154,14 +134,11 @@ if [[ "$uefi" = 'yes' ]]; then
 	efivar -l > /dev/null || config_fail 'uefi'
 	## bootloader
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
-	## partition_table
-	[[ "$partition_table" = 'gpt' ]] || config_fail 'partition_table'
 	if [[ "$manual_part" = 'no' ]]; then
 		type mkfs.vfat > /dev/null || fail 'please install the dosfstools package!'
 	fi
 	[[ -z "$esp_size" ]] && config_fail 'esp_size'
 	[[ "$esp_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'esp_size'
-	totalsize=$(( totalsize + $(unit_to_bytes "$esp_size") ))
 else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
 	## bootloader
@@ -177,10 +154,6 @@ else
 	else
 		[[ "$bootloader" = 'grub' ]] || config_fail 'bootloader'
 	fi
-fi
-# check if totalsize plus 100 MiB is smaller than disk size
-if [[ "$manual_part" = 'no' ]]; then
-	(( totalsize + 104857600 < dest_disk_size )) || fail 'disk size is too small!'
 fi
 # mirror
 ## online status is checked after internet connection was tested successfully
@@ -251,27 +224,29 @@ else
 fi
 
 # no config_fail beyond this point
-echo -e '\033[32m| OK.\033[0m'
+printf "$GREEN"
+printf '%s\n' '| OK.'
+printf "$ALL_OFF"
 }
 
 ask_confirm() {
-echo -e '\033[31m'
-echo '---------------------------------------'
+printf "$RED"
+printf '%s\n' '---------------------------------------'
 if [[ "$manual_part" = 'no' ]]; then
-	echo 'The following drive will be formatted.'
+	printf '%s\n' 'The following drive will be formatted.'
 	lsblk -o NAME,TYPE,MODEL,SIZE,FSTYPE "$dest_disk"
 else
-	echo 'The following filesystems are targeted.'
+	printf '%s\n' 'The following filesystems are targeted.'
 	findmnt -l -o TARGET,SOURCE -R /mnt
 fi
-echo '---------------------------------------'
-echo -ne '\033[0m'
+printf '%s\n' '---------------------------------------'
+printf "$ALL_OFF"
 answer='x'
 while [[ "$answer" != 'Y' ]]; do
-	echo -n 'Continue? (Y/n) '
+	printf '%s' 'Continue? (Y/n) '
 	read -n 2 -r answer
 	[[ "$answer" = 'n' ]] && fail 'script cancelled!'
-	echo
+	printf '\n'
 done
 }
 
@@ -289,24 +264,20 @@ message 'Creating partitions..'
 ## partition layout
 if [[ "$uefi" = 'yes' ]]; then
 	if [[ "$swap" = 'yes' ]]; then
-		esp_num=1
 		swap_num=2
 		root_num=3
 		home_num=4
 	else
-		esp_num=1
 		root_num=2
 		home_num=3
 	fi
 else
-	if [[ "$bootloader" = 'grub' && "$partition_table" = 'gpt' ]]; then
+	if [[ "$bootloader" = 'grub' ]]; then
 		if [[ "$swap" = 'yes' ]]; then
-			bios_num=1
 			swap_num=2
 			root_num=3
 			home_num=4
 		else
-			bios_num=1
 			root_num=2
 			home_num=3
 		fi
@@ -322,87 +293,31 @@ else
 	fi
 fi
 
-## MBR
-if [[ "$partition_table" = 'mbr' ]]; then
-
-# DO NOT INSERT WHITESPACE INTO ECHO, OTHERWISE FDISK FAILS
-	## swap partition
-	if [[ "$swap" = 'yes' ]]; then
-		echo -e "n\n\
-p\n\
-"$swap_num"\n\
-\n\
-+"$swap_size"\n\
-t\n\
-82\n\
-w" | fdisk -t dos "$dest_disk"
-		sleep 1
-	fi
-
-	## root partition
-	if [[ "$root_size" = '0' ]]; then
-		echo -e "n\n\
-p\n\
-"$root_num"\n\
-\n\
-\n\
-w" | fdisk -t dos "$dest_disk"
-	else
-		echo -e "n\n\
-p\n\
-"$root_num"\n\
-\n\
-+"$root_size"\n\
-w" | fdisk -t dos "$dest_disk"
-	fi
+## EFI system partition
+if [[ "$uefi" = 'yes' ]]; then
+	sgdisk -n 1:0:+"$esp_size" -t 1:EF00 "$dest_disk"
 	sleep 1
-
-	## home partition
-	if [[ "$home" = 'yes' ]]; then
-		if [[ "$home_size" = '0' ]]; then
-			echo -e "n\n\
-p\n\
-"$home_num"\n\
-\n\
-\n\
-w" | fdisk -t dos "$dest_disk"
-		else
-			echo -e "n\n\
-p\n\
-"$home_num"\n\
-\n\
-+"$home_size"\n\
-w" | fdisk -t dos "$dest_disk"
-		fi
-	fi
-## GPT
 else
-	## EFI system partition
-	if [[ "$uefi" = 'yes' ]]; then
-		sgdisk -n "$esp_num":0:+"$esp_size" -t "$esp_num":EF00 "$dest_disk"
-		sleep 1
-	else
-		## BIOS boot partition
-		if [[ "$bootloader" = 'grub' ]]; then
-			sgdisk -n "$bios_num":0:+1007K -t "$bios_num":EF02 "$dest_disk"
-			sleep 1
-		fi
-	fi
-
-	## swap partition
-	if [[ "$swap" = 'yes' ]]; then
-		sgdisk -n "$swap_num":0:+"$swap_size" -t "$swap_num":8200 "$dest_disk"
+	## BIOS boot partition
+	if [[ "$bootloader" = 'grub' ]]; then
+		sgdisk -n 1:0:+1007K -t 1:EF02 "$dest_disk"
 		sleep 1
 	fi
+fi
 
-	## root partition
-	sgdisk -n "$root_num":0:+"$root_size" -t "$root_num":8300 "$dest_disk"
+## swap partition
+if [[ "$swap" = 'yes' ]]; then
+	sgdisk -n "$swap_num":0:+"$swap_size" -t "$swap_num":8200 "$dest_disk"
 	sleep 1
+fi
 
-	## home partition
-	if [[ "$home" = 'yes' ]]; then
-		sgdisk -n "$home_num":0:+"$home_size" -t "$home_num":8300 "$dest_disk"
-	fi
+## root partition
+sgdisk -n "$root_num":0:+"$root_size" -t "$root_num":8300 "$dest_disk"
+sleep 1
+
+## home partition
+if [[ "$home" = 'yes' ]]; then
+	sgdisk -n "$home_num":0:+"$home_size" -t "$home_num":8300 "$dest_disk"
 fi
 
 # Create and mount filesystems
@@ -415,10 +330,10 @@ mount -t "$fstype" "$dest_disk""$root_num" /mnt
 ## ESP
 if [[ "$uefi" = 'yes' ]]; then
 	message 'Formatting ESP..'
-	mkfs.vfat -F32 "$dest_disk""$esp_num"
+	mkfs.vfat -F32 "$dest_disk"1
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
-	mount -t vfat "$dest_disk""$esp_num" /mnt/boot
+	mount -t vfat "$dest_disk"1 /mnt/boot
 fi
 
 ## swap
@@ -438,8 +353,7 @@ if [[ "$home" = 'yes' ]]; then
 		dd bs=4M iflag=nocache oflag=direct if=/dev/zero of="$dest_disk""$home_num" || sync
 		## map physical partition to LUKS
 		message 'Please enter a new encryption passphrase.'
-		cryptsetup --use-random -qy -c "$cipher" -h "$hash_alg" -s "$key_size" \
-luksFormat "$dest_disk""$home_num"
+		cryptsetup ${cryptsetup_options} luksFormat "$dest_disk""$home_num"
 		## open encrypted volume
 		message 'To unlock the container, enter the passphrase again.'
 		cryptsetup open --type luks "$dest_disk""$home_num" home
@@ -493,18 +407,23 @@ message 'Configuring system..'
 # crypttab
 if [[ "$encrypt_home" = 'yes' ]]; then
 	home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
-	echo "home UUID=$home_uuid none luks,timeout=60s" >> /mnt/etc/crypttab
-	[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/etc/crypttab
+	printf '%s\n' "home UUID=${home_uuid} none luks,timeout=60s" >> /mnt/etc/crypttab
+	if [[ "$edit_conf" = 'yes' ]]; then
+		"$EDITOR" /mnt/etc/crypttab
+		clear
+	fi
 fi
 
 # fstab
 genfstab -U -p /mnt > /mnt/etc/fstab
-[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/etc/fstab
-
+if [[ "$edit_conf" = 'yes' ]]; then
+	"$EDITOR" /mnt/etc/fstab
+	clear
+fi
 # locale
-[[ "$locale" = 'en_US.UTF-8 UTF-8' ]] || echo 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
-echo "$locale" >> /mnt/etc/locale.gen
-echo "LANG=${locale%% *}" > /mnt/etc/locale.conf
+[[ "$locale" = 'en_US.UTF-8 UTF-8' ]] || printf '%s\n' 'en_US.UTF-8 UTF-8' >> /mnt/etc/locale.gen
+printf '%s\n' "$locale" >> /mnt/etc/locale.gen
+printf '%s\n' "LANG=${locale%% *}" > /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
 # console font and keymap
@@ -522,12 +441,12 @@ hwclock -w --"$hardware_clock"
 # kernel modules
 if [[ "$configure_modules" = 'yes' ]]; then
 	for m in ${k_modules[@]}; do
-		echo "$m" >> /mnt/etc/modules-load.d/modules.conf
+		printf '%s\n' "$m" >> /mnt/etc/modules-load.d/modules.conf
 	done
 fi
 
 # hostname
-echo "$hostname" > /mnt/etc/hostname
+printf '%s\n' "$hostname" > /mnt/etc/hostname
 
 # network service
 if [[ "$network" != 'no' ]]; then
@@ -549,6 +468,7 @@ fi
 if [[ "$edit_conf" = 'yes' ]]; then
 	cp /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf
 	"$EDITOR" /mnt/etc/mkinitcpio.conf
+	clear
 	## only regenerate if modified
 	cmp -s /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf || arch-chroot /mnt mkinitcpio -p linux
 	rm -f /tmp/mkinitpcio.conf
@@ -584,8 +504,8 @@ if [[ "$uefi" = 'yes' ]]; then
 		## install grub
 		pacman_install dosfstools efibootmgr grub
 		## in special cases, change to: --target=i386-efi
-		echo 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=x86_64-efi \
---efi-directory=/boot --bootloader-id=arch_grub --recheck' | arch-chroot /mnt
+		printf '%s\n' 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
+--target=x86_64-efi --efi-directory=/boot --bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
 		## install gummiboot
 		pacman_install gummiboot
@@ -604,18 +524,16 @@ linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
 options	root=PARTUUID=$root_partuuid rw
 EOF
-		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/loader/entries/arch.conf
-
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/boot/loader/entries/arch.conf
+			clear
+		fi
 	fi
 else
 	# BIOS
 	if [[ "$bootloader" = 'syslinux' ]]; then
 		## install syslinux
-		if [[ "$partition_table" = 'gpt' ]]; then
-			pacman_install gptfdisk syslinux
-		else
-			pacman_install syslinux
-		fi
+		pacman_install gptfdisk syslinux
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
@@ -627,35 +545,37 @@ DEFAULT arch
 
 LABEL arch
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$root_uuid rw
+	APPEND root=UUID=${root_uuid} rw
 	INITRD ../initramfs-linux.img
 
 LABEL archfallback
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$root_uuid rw
+	APPEND root=UUID=${root_uuid} rw
 	INITRD ../initramfs-linux-fallback.img
 EOF
-		[[ "$edit_conf" = 'yes' ]] && "$EDITOR" /mnt/boot/syslinux/syslinux.cfg
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/boot/syslinux/syslinux.cfg
+			clear
+		fi
 	else
 		## install grub
 		pacman_install grub
-		echo "grub-mkconfig -o /boot/grub/grub.cfg; grub-install --target=i386-pc \
---recheck $dest_disk" | arch-chroot /mnt
+		printf '%s\n' "grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
+--target=i386-pc --recheck ${dest_disk}" | arch-chroot /mnt
 	fi
 fi
 }
-
 
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.5.4
-Copyright (C) 2013 Dennis Anfossi
+archinstaller 0.6.6
+Copyright (C) 2014 Dennis Anfossi, Lukas B.
 License GPLv2
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
-Written by Dennis Anfossi & teateawhy.
+Written by Dennis Anfossi & Lukas B.
 EOF
 		exit 0
 	elif [[ "$1" = '-h' || "$1" = '--help' ]]; then
@@ -677,14 +597,10 @@ fi
 # check arch linux
 [[ -e /etc/arch-release ]] || fail 'please run on arch linux!'
 
-# ⌘ check apple mac
-if [[ "$( < '/sys/class/dmi/id/sys_vendor' )" = 'Apple Inc.' ]] || \
-[[ "$( < '/sys/class/dmi/id/sys_vendor' )" = 'Apple Computer, Inc.' ]]; then
-	fail 'Apple Mac computers are not supported, due to non-compliant firmware!'
-fi
-
 # arch-install-scripts required
 type pacstrap > /dev/null || fail 'please install the arch-install-scripts package!'
+# gdisk required
+type gdisk > /dev/null || fail 'please install the gptfdisk package!'
 
 # set defaults
 confirm='yes'
@@ -693,9 +609,7 @@ manual_part='no'
 esp_size='512M'
 home='yes'
 home_size='0'
-cipher='aes-xts-plain64'
-hash_alg='sha1'
-key_size='256'
+cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 
 # EDITOR defaults to nano if environment variable EDITOR is unset
 [[ -z "$EDITOR" ]] && EDITOR='nano'
@@ -703,13 +617,13 @@ key_size='256'
 # check if configuration file is in the current working directory
 [[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd) !"
 
-echo -ne '\033[31m'
+printf "$RED"
 cat << EOF
 ---------------------------------------
        Welcome to archinstaller!
 ---------------------------------------
 EOF
-echo -ne '\033[0m'
+printf "$ALL_OFF"
 
 # source configuration file
 source ./ari.conf
@@ -727,10 +641,13 @@ check_conf
 [[ -z "$k_modules" ]] && configure_modules='no' || configure_modules='yes'
 
 # check internet connection
-echo -e '\033[31m| Checking internet connection..'
+printf "$RED"
+printf '%s\n' '| Checking internet connection..'
 curl --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
 fail 'please check the internet connection!'
-echo -e '\033[32m| OK.\033[0m'
+printf "$GREEN"
+printf '%s\n' '| OK.'
+printf "$ALL_OFF"
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
@@ -749,7 +666,7 @@ set -e -u
 # mirror
 if [[ "$mirror" != 'keep' ]]; then
 	mirror='Server = '"$mirror"'$repo/os/$arch'
-	echo "$mirror" > /etc/pacman.d/mirrorlist
+	printf '%s\n' "$mirror" > /etc/pacman.d/mirrorlist
 fi
 
 # pacstrap base packages
@@ -781,13 +698,13 @@ else
 fi
 
 # finish
-echo -e '\033[31m'
+printf "$RED"
 cat << EOF
 ---------------------------------------
         Installation completed!
      Reboot the computer: # reboot
 ---------------------------------------
 EOF
-echo -ne '\033[0m'
+printf "$ALL_OFF"
 
 exit 0

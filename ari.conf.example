@@ -1,10 +1,11 @@
 ##############################################################
 # title		: ari.conf.example
 # description	: Example configuration for archinstaller
-# authors	: Dennis Anfossi & teateawhy
+# authors	: Dennis Anfossi,
+#		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 12.03.2014
-# version	: 0.6.5.4
+# date		: 22.03.2014
+# version	: 0.6.6
 # license	: GPLv2
 ##############################################################
 
@@ -15,12 +16,9 @@
 uefi='no'
 bootloader='syslinux'
 dest_disk='/dev/sda'
-partition_table='gpt'
 swap='no'
 encrypt_home='yes'
-cipher='aes-xts-plain64'
-hash_alg='sha512'
-key_size='512'
+cryptsetup_options='-qy -c aes-xts-plain64 -h sha512 -s 512'
 root_size='20G'
 fstype='ext4'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
