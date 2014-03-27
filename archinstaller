@@ -6,8 +6,8 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 22.03.2014
-# version	: 0.6.6
+# date		: 27.03.2014
+# version	: 0.6.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -447,6 +447,7 @@ fi
 
 # hostname
 printf '%s\n' "$hostname" > /mnt/etc/hostname
+sed -i '6 s/$/\t'"$hostname"'/' /mnt/etc/hosts
 
 # network service
 if [[ "$network" != 'no' ]]; then
@@ -570,7 +571,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.6
+archinstaller 0.6.7
 Copyright (C) 2014 Dennis Anfossi, Lukas B.
 License GPLv2
 This is free software: you are free to change and redistribute it.
