@@ -4,8 +4,8 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 30.03.2014
-# version	: 0.6.8
+# date		: 01.04.2014
+# version	: 0.6.9
 # license	: GPLv2
 ##############################################################
 
@@ -17,9 +17,11 @@ uefi='no'
 bootloader='syslinux'
 dest_disk='/dev/sda'
 swap='no'
+home='yes'
 encrypt_home='yes'
 cryptsetup_options='-qy -c aes-xts-plain64 -h sha512 -s 512'
 root_size='20G'
+home_size='0'
 fstype='ext4'
 mirror='http://mirror.de.leaseweb.net/archlinux/'
 locale='de_DE.UTF-8 UTF-8'

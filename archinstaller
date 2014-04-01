@@ -6,8 +6,8 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 30.03.2014
-# version	: 0.6.8
+# date		: 01.04.2014
+# version	: 0.6.9
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
@@ -427,8 +427,8 @@ arch-chroot /mnt locale-gen
 
 # console font and keymap
 cat << EOF > /mnt/etc/vconsole.conf
-KEYMAP=$keymap
-FONT=$font
+KEYMAP=${keymap}
+FONT=${font}
 EOF
 
 # timezone
@@ -519,7 +519,7 @@ EOF
 title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
-options	root=PARTUUID=$root_partuuid rw
+options	root=PARTUUID=${root_partuuid} rw
 EOF
 		if [[ "$edit_conf" = 'yes' ]]; then
 			"$EDITOR" /mnt/boot/loader/entries/arch.conf
@@ -567,7 +567,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.8
+archinstaller 0.6.9
 Copyright (C) 2014 Dennis Anfossi, Lukas B.
 License GPLv2
 This is free software: you are free to change and redistribute it.
@@ -604,8 +604,6 @@ confirm='yes'
 edit_conf='yes'
 manual_part='no'
 esp_size='512M'
-home='yes'
-home_size='0'
 cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 
 # EDITOR defaults to nano if environment variable EDITOR is unset
