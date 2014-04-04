@@ -145,7 +145,7 @@ if [[ "$uefi" = 'yes' ]]; then
 else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
 	## bootloader
-	if [[ "$bootloader" = 'syslinux' || "$bootloader" = 'grub' ]] || config_fail 'bootloader'
+	[[ "$bootloader" = 'syslinux' || "$bootloader" = 'grub' ]] || config_fail 'bootloader'
 fi
 # mirror
 ## online status is checked after internet connection was tested successfully
