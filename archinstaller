@@ -6,11 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 01.04.2014
-# version	: 0.6.9
+# date		: 04.04.2014
+# version	: 0.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
+
+declare -r VERSION='0.7'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -64,8 +66,6 @@ if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at /mnt!'
 	[[ -z "$root_num" ]] && config_fail 'root_num'
 	[[ -b "$dest_disk""$root_num" ]] || config_fail 'root_num'
-	# determine fstype of /mnt/boot or /mnt
-	fstype=$(findmnt -no FSTYPE /mnt/boot) || fstype=$(findmnt -no FSTYPE /mnt)
 	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
@@ -83,6 +83,9 @@ fail 'found mounted filesystem on destination disk!'
 	else
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
+	# boot_size
+	[[ -z "$boot_size" ]] && config_fail 'boot_size'
+	[[ "$boot_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'boot_size'
 	# root_size
 	if [[ "$root_size" = '0' ]]; then
 		[[ "$home" = 'no' ]] || config_fail 'home'
@@ -142,18 +145,7 @@ if [[ "$uefi" = 'yes' ]]; then
 else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
 	## bootloader
-	if [[ "$bootloader" = 'syslinux' ]]; then
-		## syslinux supports the following filesystems
-		case "$fstype" in
-			ext2)	;;
-			ext3)	;;
-			ext4)	;;
-			btrfs)	;;
-			*)	config_fail 'bootloader';;
-		esac
-	else
-		[[ "$bootloader" = 'grub' ]] || config_fail 'bootloader'
-	fi
+	if [[ "$bootloader" = 'syslinux' || "$bootloader" = 'grub' ]] || config_fail 'bootloader'
 fi
 # mirror
 ## online status is checked after internet connection was tested successfully
@@ -274,20 +266,24 @@ else
 	if [[ "$bootloader" = 'grub' ]]; then
 		if [[ "$swap" = 'yes' ]]; then
 			swap_num=2
-			root_num=3
-			home_num=4
+			boot_num=3
+			root_num=4
+			home_num=5
 		else
+			boot_num=1
 			root_num=2
 			home_num=3
 		fi
 	else
 		if [[ "$swap" = 'yes' ]]; then
 			swap_num=1
+			boot_num=2
+			root_num=3
+			home_num=4
+		else
+			boot_num=1
 			root_num=2
 			home_num=3
-		else
-			root_num=1
-			home_num=2
 		fi
 	fi
 fi
@@ -307,6 +303,12 @@ fi
 ## swap partition
 if [[ "$swap" = 'yes' ]]; then
 	sgdisk -n "$swap_num":0:+"$swap_size" -t "$swap_num":8200 "$dest_disk"
+	sleep 1
+fi
+
+## boot partition
+if [[ "$uefi" = 'no' ]]; then
+	sgdisk -n "$boot_num":0:+"$boot_size" -t "$boot_num":8300 "$dest_disk"
 	sleep 1
 fi
 
@@ -333,6 +335,12 @@ if [[ "$uefi" = 'yes' ]]; then
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
 	mount -t vfat "$dest_disk"1 /mnt/boot
+else
+	message 'Formatting /boot..'
+	mkfs.ext2 "$dest_disk""$boot_num"
+	mkdir -p /mnt/boot
+	message 'Mounting /boot..'
+	mount -t ext2 "$dest_disk""$boot_num" /mnt/boot
 fi
 
 ## swap
@@ -356,16 +364,16 @@ if [[ "$home" = 'yes' ]]; then
 		## open encrypted volume
 		message 'To unlock the container, enter the passphrase again.'
 		cryptsetup open --type luks "$dest_disk""$home_num" home
-		message 'Formatting home..'
+		message 'Formatting /home..'
 		mkfs."$fstype" /dev/mapper/home
 		mkdir /mnt/home
-		message 'Mounting home..'
+		message 'Mounting /home..'
 		mount -t "$fstype" /dev/mapper/home /mnt/home
 	else
-		message 'Formatting home..'
+		message 'Formatting /home..'
 		mkfs."$fstype" "$dest_disk""$home_num"
 		mkdir /mnt/home
-		message 'Mounting home..'
+		message 'Mounting /home..'
 		mount -t "$fstype" "$dest_disk""$home_num" /mnt/home
 	fi
 fi
@@ -485,7 +493,7 @@ if [[ "$add_user" = 'yes' ]]; then
 	useradd -R /mnt -m -g users -s /bin/bash "$username"
 	## set user password
 	if [[ "$set_password" = 'yes' ]]; then
-		message "Setting password for $username.."
+		message "Setting password for ${username}.."
 		while :; do
 			passwd -R /mnt "$username" && break
 		done
@@ -567,7 +575,7 @@ if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments!'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
-archinstaller 0.6.9
+archinstaller ${VERSION}
 Copyright (C) 2014 Dennis Anfossi, Lukas B.
 License GPLv2
 This is free software: you are free to change and redistribute it.
@@ -604,6 +612,7 @@ confirm='yes'
 edit_conf='yes'
 manual_part='no'
 esp_size='512M'
+boot_size='128M'
 cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 
 # EDITOR defaults to nano if environment variable EDITOR is unset
@@ -615,7 +624,7 @@ cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 printf "$RED"
 cat << EOF
 ---------------------------------------
-       Welcome to archinstaller!
+          archinstaller ${VERSION}
 ---------------------------------------
 EOF
 printf "$ALL_OFF"
