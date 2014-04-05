@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 05.04.2014
-# version	: 0.7.2
+# version	: 0.7.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.2'
+declare -r VERSION='0.7.3'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -24,14 +24,14 @@ readonly ALL_OFF GREEN RED
 # functions
 config_fail() {
 printf "$RED"
-printf '%s\n' "| Error, please check variable ${1} !"
+printf '%s\n' "| Error in variable ${1}."
 printf "$ALL_OFF"
 exit 1
 }
 
 fail() {
 printf "$RED"
-printf '%s\n' "| Error, ${1}"
+printf '%s\n' "| Error, ${1}."
 printf "$ALL_OFF"
 exit 1
 }
@@ -66,18 +66,17 @@ fi
 [[ "$unmount" = 'yes' || "$unmount" = 'no' ]] || config_fail 'unmount'
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
-	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at /mnt!'
-	[[ -z "$root_num" ]] && config_fail 'root_num'
-	[[ -b "$dest_disk""$root_num" ]] || config_fail 'root_num'
+	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at target /mnt'
+	[[ -z "$cmdline" ]] && config_fail 'cmdline'
 	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
 	# check /mnt for availability
 	findmnt -nfo TARGET /mnt > /dev/null && \
-fail 'working directory /mnt is blocked by mounted filesystem!'
+fail 'working directory /mnt is blocked by mounted filesystem'
 	# check dest_disk for mounted filesystems
 	mount | grep "$dest_disk" > /dev/null && \
-fail 'found mounted filesystem on destination disk!'
+fail 'found mounted filesystem on destination disk'
 	# swap
 	if [[ "$swap" = 'yes' ]]; then
 		## swap_size
@@ -116,17 +115,14 @@ fail 'found mounted filesystem on destination disk!'
 	# fstpye
 	## check if mkfs utilities are installed
 	case "$fstype" in
-		btrfs)	type mkfs.btrfs > /dev/null || \
-fail 'please install the btrfs-progs package!';;
-		ext2)		;;
-		ext3)		;;
-		ext4)		;;
-		jfs)	type mkfs.jfs > /dev/null || fail 'please install the jfsutils package!';;
-		nilfs2)	type mkfs.nilfs2 > /dev/null || \
-fail 'please install the nilfs-utils package!';;
-		reiserfs)	type mkfs.reiserfs > /dev/null || \
-fail 'please install the reiserfsprogs package!';;
-		xfs)	type mkfs.xfs > /dev/null || fail 'please install the xfsprogs package!';;
+		btrfs)	type mkfs.btrfs > /dev/null || fail 'missing package: btrfs-progs';;
+		ext2|ext3|ext4)
+			type mkfs.ext4 > /dev/null || fail 'missing package: e2fsprogs';;
+		jfs)	type mkfs.jfs > /dev/null || fail 'missing package: jfsutils';;
+		nilfs2)	type mkfs.nilfs2 > /dev/null || fail 'missing package: nilfs-utils';;
+		reiserfs)
+			type mkfs.reiserfs > /dev/null || fail 'missing package: reiserfsprogs';;
+		xfs)	type mkfs.xfs > /dev/null || fail 'missing package: xfsprogs';;
 		*)	config_fail 'fstype';;
 	esac
 fi
@@ -141,7 +137,7 @@ if [[ "$uefi" = 'yes' ]]; then
 	## bootloader
 	[[ "$bootloader" = 'grub' || "$bootloader" = 'gummiboot' ]] || config_fail 'bootloader'
 	if [[ "$manual_part" = 'no' ]]; then
-		type mkfs.vfat > /dev/null || fail 'please install the dosfstools package!'
+		type mkfs.vfat > /dev/null || fail 'missing package: dosfstools'
 	fi
 	[[ -z "$esp_size" ]] && config_fail 'esp_size'
 	[[ "$esp_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'esp_size'
@@ -172,9 +168,7 @@ timedatectl --no-pager list-timezones | grep -x "$timezone" > /dev/null || confi
 [[ "$hostname" =~ ^[a-z0-9][a-z0-9-]*[a-z0-9]$ ]] || config_fail 'hostname'
 # network
 case "$network" in
-	no)		;;
-	dhcpcd)		;;
-	ifplugd)	;;
+	no|dhcpcd|ifplugd)	;;
 	netctl)	[[ -z "$netctl_profile" ]] && config_fail 'netctl_profile'
 		[[ -s ./"$netctl_profile" ]] || config_fail 'netctl_profile';;
 	*)	config_fail 'network';;
@@ -203,23 +197,12 @@ fi
 if [[ "$xorg" = 'yes' ]]; then
 	## desktop_environment
 	case "$desktop_environment" in
-		no)		;;
-		cinnamon)	;;
-		enlightenment17);;
-		gnome)		;;
-		kde)		;;
-		lxde)		;;
-		mate)		;;
-		xfce4)		;;
+		no|cinnamon|enlightenment17|gnome|kde|lxde|mate|xfce4)	;;
 		*)	config_fail 'desktop_environment';;
 	esac
 	### display_manager
 	case "$display_manager" in
-		no)	;;
-		gdm)	;;
-		kdm)	;;
-		lxdm)	;;
-		xdm)	;;
+		no|gdm|kdm|lxdm|xdm)	;;
 		*)	config_fail 'display_manager';;
 	esac
 else
@@ -244,11 +227,11 @@ else
 fi
 printf '%s\n' '---------------------------------------'
 printf "$ALL_OFF"
-answer='x'
+local answer='x'
 while [[ "$answer" != 'Y' ]]; do
 	printf '%s' 'Continue? (Y/n) '
 	read -n 2 -r answer
-	[[ "$answer" = 'n' ]] && fail 'script cancelled!'
+	[[ "$answer" = 'n' ]] && fail 'script cancelled'
 	printf '\n'
 done
 }
@@ -396,36 +379,36 @@ pacman --noconfirm --needed -r /mnt --cachedir=/mnt/var/cache/pacman/pkg -S $@
 }
 
 install_xorg() {
-if [[ "$xorg" = 'yes' ]]; then
-	message 'Installing xorg packages..'
-	pacman_install xorg-server xorg-server-utils xorg-xinit
-	# install desktop environment
-	case "$desktop_environment" in
-		no)	;;
-		cinnamon)	pacman_install cinnamon;;
-		enlightenment17)	pacman_install enlightenment17;;
-		gnome)	pacman_install gnome gnome-extra;;
-		kde)	pacman_install kde;;
-		lxde)	pacman_install lxde;;
-		mate)	pacman_install mate mate-extra;;
-		xfce4)	pacman_install xfce4 xfce4-goodies;;
-	esac
-	# install display manager
-	case "$display_manager" in
-		no)	;;
-		gdm)	pacman_install gdm;;
-		kdm)	pacman_install kdebase-workspace;;
-		lxdm)	pacman_install lxdm;;
-		xdm)	pacman_install xorg-xdm;;
-	esac
-fi
+message 'Installing xorg packages..'
+pacman_install xorg-server xorg-server-utils xorg-xinit
+# install desktop environment
+case "$desktop_environment" in
+	no)	;;
+	cinnamon)
+		pacman_install cinnamon;;
+	enlightenment17)
+		pacman_install enlightenment17;;
+	gnome)	pacman_install gnome gnome-extra;;
+	kde)	pacman_install kde;;
+	lxde)	pacman_install lxde;;
+	mate)	pacman_install mate mate-extra;;
+	xfce4)	pacman_install xfce4 xfce4-goodies;;
+esac
+# install display manager
+case "$display_manager" in
+	no)	;;
+	gdm)	pacman_install gdm;;
+	kdm)	pacman_install kdebase-workspace;;
+	lxdm)	pacman_install lxdm;;
+	xdm)	pacman_install xorg-xdm;;
+esac
 }
 
 configure_system() {
 message 'Configuring system..'
 # crypttab
 if [[ "$encrypt_home" = 'yes' ]]; then
-	home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
+	local home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
 	printf '%s\n' "home UUID=${home_uuid} none luks,timeout=60s" >> /mnt/etc/crypttab
 	if [[ "$edit_conf" = 'yes' ]]; then
 		"$EDITOR" /mnt/etc/crypttab
@@ -474,8 +457,9 @@ if [[ "$network" != 'no' ]]; then
 	touch /mnt/etc/udev/rules.d/80-net-setup-link.rules
 	case "$network" in
 		dhcpcd)	systemctl --root=/mnt enable dhcpcd@eth0.service;;
-		ifplugd)	pacman_install ifplugd
-				systemctl --root=/mnt enable netctl-ifplugd@eth0.service;;
+		ifplugd)
+			pacman_install ifplugd
+			systemctl --root=/mnt enable netctl-ifplugd@eth0.service;;
 		netctl)	cp ./"$netctl_profile" /mnt/etc/netctl
 			arch-chroot /mnt netctl enable "$netctl_profile";;
 	esac
@@ -541,13 +525,15 @@ if [[ "$uefi" = 'yes' ]]; then
 default arch
 timeout 5
 EOF
-
-		root_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_num")
+		if [[ "$manual_part" = 'no' ]]; then
+			local root_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_num")
+			local cmdline="root=PARTUUID=${root_partuuid} rw"
+		fi
 		cat << EOF > /mnt/boot/loader/entries/arch.conf
 title	Arch Linux
 linux	/vmlinuz-linux
 initrd	/initramfs-linux.img
-options	root=PARTUUID=${root_partuuid} rw
+options	${cmdline}
 EOF
 		if [[ "$edit_conf" = 'yes' ]]; then
 			"$EDITOR" /mnt/boot/loader/entries/arch.conf
@@ -562,7 +548,10 @@ else
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
-		root_uuid=$(lsblk -dno UUID "$dest_disk""$root_num")
+		if [[ "$manual_part" = 'no' ]]; then
+			local root_uuid=$(lsblk -dno UUID "$dest_disk""$root_num")
+			local cmdline="root=UUID=${root_uuid} rw"
+		fi
 		cat << EOF > /mnt/boot/syslinux/syslinux.cfg
 PROMPT 1
 TIMEOUT 50
@@ -570,12 +559,12 @@ DEFAULT arch
 
 LABEL arch
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=${root_uuid} rw
+	APPEND ${cmdline}
 	INITRD ../initramfs-linux.img
 
 LABEL archfallback
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=${root_uuid} rw
+	APPEND ${cmdline}
 	INITRD ../initramfs-linux-fallback.img
 EOF
 		if [[ "$edit_conf" = 'yes' ]]; then
@@ -592,7 +581,7 @@ fi
 }
 
 if (( "$#" > 0 )); then
-	(( "$#" > 1 )) && fail 'too many arguments!'
+	(( "$#" > 1 )) && fail 'too many arguments'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
 		cat << EOF
 archinstaller ${VERSION}
@@ -612,20 +601,20 @@ For the complete documentation see README.
 EOF
 		exit 0
 	else
-		fail "invalid option $1"
+		fail "invalid option ${1}"
 	fi
 fi
 
 # check root user id
-[[ "$EUID" = '0' ]] || fail 'please run as root user!'
+[[ "$EUID" = '0' ]] || fail 'please run as root user'
 
 # check arch linux
-[[ -e /etc/arch-release ]] || fail 'please run on arch linux!'
+[[ -e /etc/arch-release ]] || fail 'please run on arch linux'
 
 # arch-install-scripts required
-type pacstrap > /dev/null || fail 'please install the arch-install-scripts package!'
+type pacstrap > /dev/null || fail 'please install the arch-install-scripts package'
 # gdisk required
-type gdisk > /dev/null || fail 'please install the gptfdisk package!'
+type gdisk > /dev/null || fail 'please install the gptfdisk package'
 
 # set defaults
 confirm='yes'
@@ -640,7 +629,7 @@ cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 [[ -z "$EDITOR" ]] && EDITOR='nano'
 
 # check if configuration file is in the current working directory
-[[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd) !"
+[[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd)"
 
 printf "$RED"
 cat << EOF
@@ -669,7 +658,7 @@ check_conf
 printf "$RED"
 printf '%s\n' '| Checking internet connection..'
 curl --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
-fail 'please check the internet connection!'
+fail 'please check the internet connection'
 printf "$GREEN"
 printf '%s\n' '| OK.'
 printf "$ALL_OFF"
@@ -677,7 +666,7 @@ printf "$ALL_OFF"
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
 	curl --retry 3 -m 10 -o /dev/null -s "$mirror"lastsync || \
-fail 'please check the mirror status and configuration!'
+fail 'please check the mirror status and configuration'
 fi
 
 # paranoid shell
@@ -699,7 +688,7 @@ message 'Installing base system..'
 pacstrap /mnt base
 
 # install xorg packages
-install_xorg
+[[ "$xorg" = 'yes' ]] && install_xorg
 
 # install additional packages
 if [[ "$install_packages" = 'yes' ]]; then
