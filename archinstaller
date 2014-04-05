@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 05.04.2014
-# version	: 0.7.1
+# version	: 0.7.2
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.1'
+declare -r VERSION='0.7.2'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -36,13 +36,14 @@ printf "$ALL_OFF"
 exit 1
 }
 
-# wait 2 seconds for the user to read the message
+# wait 2 seconds for the user to read the message, if confirm is set to yes
 message() {
 printf "${RED}\n"
 printf '%s\n' '| archinstaller:'
 printf '%s\n' "| ${1}"
 printf "${ALL_OFF}\n"
-sleep 2
+[[ "$confirm" = 'yes' ]] && sleep 2
+return 0
 }
 
 check_conf() {
@@ -61,6 +62,8 @@ fi
 [[ -z "$dest_disk" ]] && config_fail 'dest_disk'
 ## check if dest_disk is really a disk
 [[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
+# unmount
+[[ "$unmount" = 'yes' || "$unmount" = 'no' ]] || config_fail 'unmount'
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at /mnt!'
@@ -177,12 +180,19 @@ case "$network" in
 	*)	config_fail 'network';;
 esac
 # set_password
-[[ "$set_password" = 'yes' || "$set_password" = 'no' ]] || config_fail 'set_password'
+if [[ "$set_password" = 'yes' ]]; then
+	## root password
+	[[ -z "$root_password" ]] && ask_root_password='yes'
+else
+	[[ "$set_password" = 'no' ]] || config_fail 'set_password'
+fi
 # add_user
 if [[ "$add_user" = 'yes' ]]; then
 	## username
 	[[ -z "$username" ]] && config_fail 'username'
 	[[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || config_fail 'username'
+	## user password
+	[[ "$set_password" = 'yes' && -z "$user_password" ]] && ask_user_password='yes'
 else
 	[[ "$add_user" = 'no' ]] || config_fail 'add_user'
 fi
@@ -321,7 +331,7 @@ if [[ "$home" = 'yes' ]]; then
 	sgdisk -n "$home_num":0:+"$home_size" -t "$home_num":8300 "$dest_disk"
 fi
 
-# Create and mount filesystems
+# create and mount filesystems
 ## root
 message 'Formatting root..'
 mkfs."$fstype" "$dest_disk""$root_num"
@@ -481,11 +491,15 @@ fi
 
 # root password
 if [[ "$set_password" = 'yes' ]]; then
-	message 'Setting password for root user..'
-	## loop if entered passwords do not match
-	while :; do
-		passwd -R /mnt root && break
-	done
+	if [[ "$ask_root_password" = 'yes' ]]; then
+		message 'Setting password for root user..'
+		## loop if entered passwords do not match
+		while :; do
+			passwd -R /mnt root && break
+		done
+	else
+		printf '%s\n' "root:${root_password}" | chpasswd -R /mnt
+	fi
 fi
 
 # add user
@@ -493,10 +507,14 @@ if [[ "$add_user" = 'yes' ]]; then
 	useradd -R /mnt -m -g users -s /bin/bash "$username"
 	## set user password
 	if [[ "$set_password" = 'yes' ]]; then
-		message "Setting password for ${username}.."
-		while :; do
-			passwd -R /mnt "$username" && break
-		done
+		if [[ "$ask_user_password" = 'yes' ]]; then
+			message "Setting password for ${username}.."
+			while :; do
+				passwd -R /mnt "$username" && break
+			done
+		else
+			printf '%s\n' "root:${user_password}" | chpasswd -R /mnt
+		fi
 	fi
 fi
 }
@@ -596,7 +614,7 @@ EOF
 	fi
 fi
 
-# check root priviledges
+# check root user id
 [[ "$EUID" = '0' ]] || fail 'please run as root user!'
 
 # check arch linux
@@ -610,6 +628,7 @@ type gdisk > /dev/null || fail 'please install the gptfdisk package!'
 # set defaults
 confirm='yes'
 edit_conf='yes'
+unmount='yes'
 manual_part='no'
 esp_size='512M'
 boot_size='128M'
@@ -693,12 +712,13 @@ configure_system
 install_bootloader
 
 # unmount filesystems
-if [[ "$manual_part" = 'yes' ]]; then
-	message 'Please unmount the targeted filesystems before rebooting.'
-else
+if [[ "$unmount" = 'yes' ]]; then
+	message 'Unmounting filesystems..'
 	umount -R /mnt
 	## close encrypted volume
 	[[ "$encrypt_home" = 'yes' ]] && cryptsetup close home
+else
+	message 'Please unmount the targeted filesystems before rebooting.'
 fi
 
 # finish
