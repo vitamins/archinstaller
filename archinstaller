@@ -182,7 +182,7 @@ esac
 # set_password
 if [[ "$set_password" = 'yes' ]]; then
 	## root password
-	[[ -z "$root_password" ]] && ask_root_password='yes'
+	[[ -z "$root_password" ]] && ask_root_password='yes' || ask_root_password='no'
 else
 	[[ "$set_password" = 'no' ]] || config_fail 'set_password'
 fi
@@ -192,7 +192,9 @@ if [[ "$add_user" = 'yes' ]]; then
 	[[ -z "$username" ]] && config_fail 'username'
 	[[ "$username" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || config_fail 'username'
 	## user password
-	[[ "$set_password" = 'yes' && -z "$user_password" ]] && ask_user_password='yes'
+	if [[ "$set_password" = 'yes' ]]; then
+		[[ -z "$user_password" ]] && ask_user_password='yes' || ask_user_password='no'
+	fi
 else
 	[[ "$add_user" = 'no' ]] || config_fail 'add_user'
 fi
