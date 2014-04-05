@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 04.04.2014
-# version	: 0.7
+# date		: 05.04.2014
+# version	: 0.7.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7'
+declare -r VERSION='0.7.1'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -270,9 +270,9 @@ else
 			root_num=4
 			home_num=5
 		else
-			boot_num=1
-			root_num=2
-			home_num=3
+			boot_num=2
+			root_num=3
+			home_num=4
 		fi
 	else
 		if [[ "$swap" = 'yes' ]]; then
