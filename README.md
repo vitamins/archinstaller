@@ -1,8 +1,9 @@
 # archinstaller
 Automated installation script for arch linux written in bash.
+It works similar to preseeding of the debian installer d-i.
 
 ## Prerequisites
-- You are booted into an arch linux environment
+- You are booted into an arch linux environment like archiso
 - The internet connection has been set up
 - The configuration found in ari.conf is valid
 - The script is run as 'root' user
@@ -33,7 +34,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - Configured in a single file
 - Can run completely automated
 - Supported bootloaders: GRUB or gummiboot for UEFI, GRUB or syslinux for BIOS
-- Configure basic system settings like language,timezone,keymap and hostname
+- Configure basic system settings like language, timezone, keymap and hostname
 - Optionally create separate partitions for swap and home
 - Choose how much space to allocate for swap, root and home partition
 - Select filesystems for root and home partition
@@ -47,13 +48,19 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 
 ## Other
 ### Partitioning
-Only GPT, not MBR, is supported as partition table.
 A simple partitioning tool that creates partitions as well as filesystems is included in the script. It is controlled by variables in the configuration file. If you want to create more advanced partition layouts, see paragraph "Manual Partitioning".
-The partition sizes are set via variables "swap_size", "root_size", and "home_size". The size must consist of a number with the letter K for Kib, M for Mib, G for Gib or T for Tib appended.
-The order of the partitions is from first to last ESP, swap, root, and home.
+The partition sizes are set via variables "swap_size", "root_size", and "home_size". The size is in the format of number + letter. K stands for Kib, M for Mib, G for Gib and T for Tib.
+
+- The Master Boot Record (MBR) is erased.
+- A new empty GUID Partition Table (GPT) is created.
+- For BIOS booting, a separate boot partition with ext2 filesystem is created, and mounted at /boot.
+- For BIOS booting and GRUB, a BIOS boot partition is created.
+- For UEFI booting a EFI System partition (ESP) with FAT32 filesystem is created, and mounted at /boot.
+
+The order of the partitions is from first to last ESP/BIOSboot, boot, swap, root, home.
 
 #### Examples
-A list of possible partition layouts that can be created by archinstaller. For simplification UEFI System partition and BIOS Boot partition have been left out of the examples. Default options are included in (brackets).
+A list of possible partition layouts that can be created by archinstaller. For simplification ESP, BIOSboot and boot partition have been left out of the examples.
 
 <pre>
 0. example:
@@ -99,7 +106,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- X GiB
 	| /home
 	---------- End
-  => options: swap='no'; (home='yes'); root_size='XG'; (home_size='0');
+  => options: swap='no'; home='yes'; root_size='XG'; home_size='0';
 
 5. example:
    Root partition of size X GiB, home partition of size Z GiB.
@@ -110,7 +117,7 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- X+Z GiB
 	| free
 	---------- End
-   => options: swap='no'; (home='yes'); root_size='XG'; home_size='ZG';
+   => options: swap='no'; home='yes'; root_size='XG'; home_size='ZG';
 
 6. example:
    Swap partition of size Y GiB, root partition of size X GiB, home partition
@@ -122,8 +129,8 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- Y+X GiB
 	| /home
 	---------- End
-   => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
-               (home_size='0');
+   => options: swap='yes'; home='yes'; swap_size='YG'; root_size='XG';
+               home_size='0';
 
 7. example:
    Swap partition of size Y GiB, root partition of size X GiB, home partition
@@ -137,28 +144,32 @@ A list of possible partition layouts that can be created by archinstaller. For s
 	---------- Y+X+Z GiB
 	| free
 	---------- End
-   => options: swap='yes'; (home='yes'); swap_size='YG'; root_size='XG';
+   => options: swap='yes'; home='yes'; swap_size='YG'; root_size='XG';
                home_size='ZG';
 </pre>
 
 ### Manual Partitioning
-If you want to create the partitions and filesystems on your own, set "manual_part" to 'yes'. Then the following assumptions are made by the script:
-- The partitions contain newly created filesystems.
+If you want to create the partitions and filesystems on your own, set "manual_part" to 'yes'. The various partitioning options (like "dest_disk") can be left unset.
+Then the following assumptions are made by the script:
 - The root partition is mounted to /mnt.
 - If using UEFI, the ESP is mounted to /mnt/boot.
-- Any other seperate partition like /usr or /var is mounted below the /mnt/ directory.
-- The variables "dest_disk" and "root_num" point to the root partition. This information is required for installing the bootloader.
-- The variable "partition_table" is set according to the partition table used for the root partition.
-- The partitions are manually unmounted before rebooting.
+- Any other separate partition like /usr or /var is mounted below the /mnt/ directory.
+- For the syslinux and gummiboot bootloaders, the kernel commandline is configured using the variable "cmdline".
 
-Choose manual partitioning for more complex setups, such as lvm, RAID or btrfs subvolumes.
+When using BIOS booting and GRUB, the bootloader is installed to the MBR of "dest_disk", that means in this special case you also need to configure "dest_disk".
+
+Choose manual partitioning for more complex setups, such as lvm, RAID, btrfs subvolumes, full disk encryption, etc.
 
 ### mirrors
-The selected mirror should be specified in the same format as listed on https://www.archlinux.org/mirrors/status/. Do not leave out the last slash.
-To use the mirrorlist from the install host, set mirror to 'keep'. This setting overwrites the mirrorlist on the host and on the installed system.
+The mirror used for downloading packages can be configured with variable "mirror".
+- For the format see https://www.archlinux.org/mirrors/status/.
+- Do not leave out the last slash.
+- To use the mirrorlist from the install host, set mirror to 'keep'.
+- This setting overwrites the mirrorlist on the host and on the installed system.
 
 ### fstab, crypttab and mkinitcpio.conf
 The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf. After mkinitcpio.conf has been edited, the initramfs is regenerated. If you want to skip this step, set the configuration option edit_conf='no'.
+You can also configure the HOOKS line in mkinitcpio.conf using the "hooks" variable.
 
 ### Language
 The language setting in "locale" is not verified by the script, but english (en_US) is generated as fallback setting.
@@ -177,7 +188,10 @@ There are two possibilities to make the script install additional packages. You 
 Should one of the packages not be found in the repositories, e.g. if you have misspelled it, no packages are installed. Leave the "packages" array empty to skip this step.
 
 ### Passwords
-Passwords are not stored in the script or configuration file. Instead you are beeing asked for a password by the underlying program like `passwd` during installation. When using encryption, think about a strong passphrase before starting the installation.
+If you want to set up passwords for the root account and user account, use set_passwords='yes'.
+You can set the passwords directly from the configuration file using variables "root_password" and "user_password".
+If left empty, you will be prompted for the passwords during installation.
+When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
 To encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like cipher, hash algorithm and key size can be configured in ari.conf. Run `cryptsetup benchmark` for a list of available options and their performance.

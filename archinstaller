@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 06.04.2014
-# version	: 0.7.4
+# version	: 0.7.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.4'
+declare -r VERSION='0.7.5'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -58,19 +58,28 @@ if [[ "$edit_conf" = 'yes' ]]; then
 else
 	[[ "$edit_conf" = 'no' ]] || config_fail 'edit_conf'
 fi
-# dest_disk
-[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
-## check if dest_disk is really a disk
-[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 # unmount
 [[ "$unmount" = 'yes' || "$unmount" = 'no' ]] || config_fail 'unmount'
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at target /mnt'
-	[[ -z "$cmdline" ]] && config_fail 'cmdline'
+	if [[ "$bootloader" = 'syslinux' || "$bootloader" = 'gummiboot' ]]; then
+		[[ -z "$cmdline" ]] && config_fail 'cmdline'
+	else
+		if [[ "$bootloader" = 'grub' && "$uefi" = 'no' ]]; then
+			# dest_disk
+			[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
+			## check if dest_disk is really a disk
+			[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
+		fi
+	fi
 	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
+	# dest_disk
+	[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
+	## check if dest_disk is really a disk
+	[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 	# check /mnt for availability
 	findmnt -nfo TARGET /mnt > /dev/null && \
 fail 'working directory /mnt is blocked by mounted filesystem'
@@ -251,6 +260,7 @@ message 'Creating partitions..'
 
 ## partition layout
 if [[ "$uefi" = 'yes' ]]; then
+	# first partition is ESP
 	if [[ "$swap" = 'yes' ]]; then
 		swap_num=2
 		root_num=3
@@ -261,9 +271,10 @@ if [[ "$uefi" = 'yes' ]]; then
 	fi
 else
 	if [[ "$bootloader" = 'grub' ]]; then
+		# first partition is BIOS boot
 		if [[ "$swap" = 'yes' ]]; then
-			swap_num=2
-			boot_num=3
+			boot_num=2
+			swap_num=3
 			root_num=4
 			home_num=5
 		else
@@ -273,8 +284,8 @@ else
 		fi
 	else
 		if [[ "$swap" = 'yes' ]]; then
-			swap_num=1
-			boot_num=2
+			boot_num=1
+			swap_num=2
 			root_num=3
 			home_num=4
 		else
@@ -295,17 +306,14 @@ else
 		sgdisk -n 1:0:+1007K -t 1:EF02 "$dest_disk"
 		sleep 1
 	fi
+	## boot partition
+	sgdisk -n "$boot_num":0:+"$boot_size" -t "$boot_num":8300 "$dest_disk"
+	sleep 1
 fi
 
 ## swap partition
 if [[ "$swap" = 'yes' ]]; then
 	sgdisk -n "$swap_num":0:+"$swap_size" -t "$swap_num":8200 "$dest_disk"
-	sleep 1
-fi
-
-## boot partition
-if [[ "$uefi" = 'no' ]]; then
-	sgdisk -n "$boot_num":0:+"$boot_size" -t "$boot_num":8300 "$dest_disk"
 	sleep 1
 fi
 
