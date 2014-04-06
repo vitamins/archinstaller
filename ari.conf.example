@@ -5,13 +5,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 06.04.2014
-# version	: 0.7.3.1
+# version	: 0.7.4
 # license	: GPLv2
 ##############################################################
 
 # See README for additional options, and read the script for
 # details about how options are processed.
-# EXAMPLE CONFIGURATION ONLY
 
 uefi='no'
 bootloader='syslinux'

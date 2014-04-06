@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 06.04.2014
-# version	: 0.7.3.1
+# version	: 0.7.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.3.1'
+declare -r VERSION='0.7.4'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -173,6 +173,8 @@ case "$network" in
 		[[ -s ./"$netctl_profile" ]] || config_fail 'netctl_profile';;
 	*)	config_fail 'network';;
 esac
+# hooks
+[[ -z "$hooks" ]] && configure_hooks='no' || configure_hooks='yes'
 # set_password
 if [[ "$set_password" = 'yes' ]]; then
 	## root password
@@ -449,7 +451,7 @@ fi
 
 # hostname
 printf '%s\n' "$hostname" > /mnt/etc/hostname
-sed -i '6 s/$/\t'"$hostname"'/' /mnt/etc/hosts
+sed -i '/^127.0.0.1/ s/$/\t'"$hostname"'/' /mnt/etc/hosts
 
 # network service
 if [[ "$network" != 'no' ]]; then
@@ -466,10 +468,15 @@ if [[ "$network" != 'no' ]]; then
 fi
 
 #  mkinitcpio
-if [[ "$edit_conf" = 'yes' ]]; then
+if [[ "$configure_hooks" = 'yes' || "$edit_conf" = 'yes' ]]; then
 	cp /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf
-	"$EDITOR" /mnt/etc/mkinitcpio.conf
-	clear
+	if [[ "$configure_hooks" = 'yes' ]]; then
+		sed -i '/^HOOKS="/ c \HOOKS="'"$hooks"'"' /mnt/etc/mkinitcpio.conf
+	fi
+	if [[ "$edit_conf" = 'yes' ]]; then
+		"$EDITOR" /mnt/etc/mkinitcpio.conf
+		clear
+	fi
 	## only regenerate if modified
 	cmp -s /mnt/etc/mkinitcpio.conf /tmp/mkinitcpio.conf || arch-chroot /mnt mkinitcpio -p linux
 	rm -f /tmp/mkinitpcio.conf
