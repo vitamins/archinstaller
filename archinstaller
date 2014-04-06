@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 05.04.2014
-# version	: 0.7.3
+# date		: 06.04.2014
+# version	: 0.7.3.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.3'
+declare -r VERSION='0.7.3.1'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -197,7 +197,7 @@ fi
 if [[ "$xorg" = 'yes' ]]; then
 	## desktop_environment
 	case "$desktop_environment" in
-		no|cinnamon|enlightenment17|gnome|kde|lxde|mate|xfce4)	;;
+		no|cinnamon|enlightenment|gnome|kde|lxde|mate|xfce4)	;;
 		*)	config_fail 'desktop_environment';;
 	esac
 	### display_manager
@@ -386,8 +386,8 @@ case "$desktop_environment" in
 	no)	;;
 	cinnamon)
 		pacman_install cinnamon;;
-	enlightenment17)
-		pacman_install enlightenment17;;
+	enlightenment)
+		pacman_install enlightenment;;
 	gnome)	pacman_install gnome gnome-extra;;
 	kde)	pacman_install kde;;
 	lxde)	pacman_install lxde;;
@@ -612,9 +612,9 @@ fi
 [[ -e /etc/arch-release ]] || fail 'please run on arch linux'
 
 # arch-install-scripts required
-type pacstrap > /dev/null || fail 'please install the arch-install-scripts package'
+type pacstrap > /dev/null || fail 'missing package: arch-install-scripts'
 # gdisk required
-type gdisk > /dev/null || fail 'please install the gptfdisk package'
+type gdisk > /dev/null || fail 'missing package: gptfdisk'
 
 # set defaults
 confirm='yes'
