@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 07.04.2014
-# version	: 0.7.6
+# version	: 0.7.6.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.6'
+declare -r VERSION='0.7.6.1'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -156,6 +156,7 @@ fi
 # mirror
 ## online status is checked after internet connection was tested successfully
 [[ -z "$mirror" ]] && config_fail 'mirror'
+[[ "$mirror" =~ /$ ]] || config_fail 'mirror'
 # locale
 [[ -z "$locale" ]] && config_fail 'locale'
 ## enforce UTF-8
@@ -704,7 +705,7 @@ check_conf
 # check internet connection
 printf "$RED"
 printf '%s\n' '| Checking internet connection..'
-curl --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
+curl -f --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
 fail 'please check the internet connection'
 printf "$GREEN"
 printf '%s\n' '| OK.'
@@ -712,7 +713,7 @@ printf "$ALL_OFF"
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
-	curl --retry 3 -m 10 -o /dev/null -s "$mirror"lastsync || \
+	curl -f --retry 3 -m 10 -o /dev/null -s "$mirror"lastsync || \
 fail 'please check the mirror status and configuration'
 fi
 
