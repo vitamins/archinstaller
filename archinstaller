@@ -70,7 +70,6 @@ if [[ "$manual_part" = 'yes' ]]; then
 		[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
 		## check if dest_disk is really a disk
 		[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
-		fi
 	fi
 	encrypt_home='no'
 else
@@ -570,6 +569,7 @@ else
 	if [[ "$bootloader" = 'syslinux' ]]; then
 		## install syslinux
 		pacman_install gptfdisk syslinux
+
 		## write to MBR
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
@@ -600,6 +600,7 @@ EOF
 	else
 		## install grub
 		pacman_install grub
+
 		## configure grub
 		if [[ "$manual_part" = 'yes' ]]; then
 			sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT="/ s/quiet/'"$cmdline"'/' \
@@ -609,6 +610,7 @@ EOF
 			"$EDITOR" /mnt/etc/default/grub
 			clear
 		fi
+
 		## write to MBR
 		printf '%s\n' "grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
 --target=i386-pc --recheck ${dest_disk}" | arch-chroot /mnt
