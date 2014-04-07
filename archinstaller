@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 06.04.2014
-# version	: 0.7.5
+# date		: 07.04.2014
+# version	: 0.7.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.5'
+declare -r VERSION='0.7.6'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -22,6 +22,7 @@ RED='\e[1;31m'
 readonly ALL_OFF GREEN RED
 
 # functions
+# {{{
 config_fail() {
 printf "$RED"
 printf '%s\n' "| Error in variable ${1}."
@@ -63,14 +64,12 @@ fi
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
 	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at target /mnt'
-	if [[ "$bootloader" = 'syslinux' || "$bootloader" = 'gummiboot' ]]; then
-		[[ -z "$cmdline" ]] && config_fail 'cmdline'
-	else
-		if [[ "$bootloader" = 'grub' && "$uefi" = 'no' ]]; then
-			# dest_disk
-			[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
-			## check if dest_disk is really a disk
-			[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
+	[[ -z "$cmdline" ]] && config_fail 'cmdline'
+	if [[ "$bootloader" = 'grub' && "$uefi" = 'no' ]]; then
+		# dest_disk
+		[[ -z "$dest_disk" ]] && config_fail 'dest_disk'
+		## check if dest_disk is really a disk
+		[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 		fi
 	fi
 	encrypt_home='no'
@@ -94,9 +93,6 @@ fail 'found mounted filesystem on destination disk'
 	else
 		[[ "$swap" = 'no' ]] || config_fail 'swap'
 	fi
-	# boot_size
-	[[ -z "$boot_size" ]] && config_fail 'boot_size'
-	[[ "$boot_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'boot_size'
 	# root_size
 	if [[ "$root_size" = '0' ]]; then
 		[[ "$home" = 'no' ]] || config_fail 'home'
@@ -154,6 +150,9 @@ else
 	[[ "$uefi" = 'no' ]] || config_fail 'uefi'
 	## bootloader
 	[[ "$bootloader" = 'syslinux' || "$bootloader" = 'grub' ]] || config_fail 'bootloader'
+	# boot_size
+	[[ -z "$boot_size" ]] && config_fail 'boot_size'
+	[[ "$boot_size" =~ ^[0-9]+[K,M,G,T]$ ]] || config_fail 'boot_size'
 fi
 # mirror
 ## online status is checked after internet connection was tested successfully
@@ -527,7 +526,18 @@ if [[ "$uefi" = 'yes' ]]; then
 	if [[ "$bootloader" = 'grub' ]]; then
 		## install grub
 		pacman_install dosfstools efibootmgr grub
-		## in special cases, change to: --target=i386-efi
+
+		## configure grub
+		if [[ "$manual_part" = 'yes' ]]; then
+			sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT="/ s/quiet/'"$cmdline"'/' \
+/mnt/etc/default/grub
+		fi
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/etc/default/grub
+			clear
+		fi
+
+		## write to MBR
 		printf '%s\n' 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
 --target=x86_64-efi --efi-directory=/boot --bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
@@ -560,6 +570,7 @@ else
 	if [[ "$bootloader" = 'syslinux' ]]; then
 		## install syslinux
 		pacman_install gptfdisk syslinux
+		## write to MBR
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
@@ -589,12 +600,25 @@ EOF
 	else
 		## install grub
 		pacman_install grub
+		## configure grub
+		if [[ "$manual_part" = 'yes' ]]; then
+			sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT="/ s/quiet/'"$cmdline"'/' \
+/mnt/etc/default/grub
+		fi
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/etc/default/grub
+			clear
+		fi
+		## write to MBR
 		printf '%s\n' "grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
 --target=i386-pc --recheck ${dest_disk}" | arch-chroot /mnt
 	fi
 fi
 }
+# }}}
 
+# parse commandline
+# {{{
 if (( "$#" > 0 )); then
 	(( "$#" > 1 )) && fail 'too many arguments'
 	if [[ "$1" = '-v' || "$1" = '--version' ]]; then
@@ -619,7 +643,10 @@ EOF
 		fail "invalid option ${1}"
 	fi
 fi
+# }}}
 
+# test requirements
+# {{{
 # check root user id
 [[ "$EUID" = '0' ]] || fail 'please run as root user'
 
@@ -630,8 +657,10 @@ fi
 type pacstrap > /dev/null || fail 'missing package: arch-install-scripts'
 # gdisk required
 type gdisk > /dev/null || fail 'missing package: gptfdisk'
+# }}}
 
 # set defaults
+# {{{
 confirm='yes'
 edit_conf='yes'
 unmount='yes'
@@ -642,6 +671,7 @@ cryptsetup_options='-qy -c aes-xts-plain64 -h sha1 -s 256'
 
 # EDITOR defaults to nano if environment variable EDITOR is unset
 [[ -z "$EDITOR" ]] && EDITOR='nano'
+# }}}
 
 # check if configuration file is in the current working directory
 [[ -s ./ari.conf ]] || fail "configuration file ari.conf not found in $(pwd)"
