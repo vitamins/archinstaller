@@ -7,12 +7,12 @@
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
 # date		: 09.04.2014
-# version	: 0.7.8
+# version	: 0.7.8.1
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8'
+declare -r VERSION='0.7.8.1'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -472,7 +472,7 @@ EOF
 ln -s /usr/share/zoneinfo/"$timezone" /mnt/etc/localtime
 
 # hardware clock
-hwclock -w --"$hardware_clock"
+hwclock --adjfile=/mnt/etc/adjtime -w --"$hardware_clock"
 
 # kernel modules
 if [[ "$configure_modules" = 'yes' ]]; then
