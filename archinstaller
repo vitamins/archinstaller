@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 08.04.2014
-# version	: 0.7.7
+# date		: 09.04.2014
+# version	: 0.7.8
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.7'
+declare -r VERSION='0.7.8'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -71,7 +71,6 @@ if [[ "$manual_part" = 'yes' ]]; then
 		## check if dest_disk is really a disk
 		[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 	fi
-	encrypt_home='no'
 else
 	[[ "$manual_part" = 'no' ]] || config_fail 'manual_part'
 	# dest_disk
@@ -114,13 +113,13 @@ fail 'found mounted filesystem on destination disk'
 		fi
 	else
 		[[ "$home" = 'no' ]] || config_fail 'home'
-		encrypt_home='no'
 	fi
 	# fstpye
 	## check if mkfs utilities are installed
 	## set options for overwriting existing filesystems
 	case "$fstype" in
 		btrfs)	type mkfs.btrfs > /dev/null || fail 'missing package: btrfs-progs'
+			packages+=( 'btrfs-progs' )
 			mkfs_options="$fstype";;
 		ext2|ext3|ext4)
 			type mkfs.ext4 > /dev/null || fail 'missing package: e2fsprogs'
@@ -128,6 +127,7 @@ fail 'found mounted filesystem on destination disk'
 		jfs)	type mkfs.jfs > /dev/null || fail 'missing package: jfsutils'
 			mkfs_options="${fstype} -q";;
 		nilfs2)	type mkfs.nilfs2 > /dev/null || fail 'missing package: nilfs-utils'
+			packages+=( 'nilfs-utils' )
 			mkfs_options="${fstype} -f -q";;
 		reiserfs)
 			type mkfs.reiserfs > /dev/null || fail 'missing package: reiserfsprogs'
@@ -422,13 +422,31 @@ esac
 
 configure_system() {
 message 'Configuring system..'
-# crypttab
-if [[ "$encrypt_home" = 'yes' ]]; then
-	local home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
-	printf '%s\n' "home UUID=${home_uuid} none luks,timeout=60s" >> /mnt/etc/crypttab
-	if [[ "$edit_conf" = 'yes' ]]; then
+
+if [[ "$manual_part" = 'yes' ]]; then
+	# crypttab
+	# check if there are any encrypted containers opened before editing crypttab
+	if [[ "$edit_conf" = 'yes' && -n "$(dmsetup ls --target crypt)" ]]; then
 		"$EDITOR" /mnt/etc/crypttab
 		clear
+	fi
+	# mdadm.conf
+	if [[ -e /proc/mdstat ]] && grep '^md' /proc/mdstat > /dev/null; then
+		mdadm -Ds >> /mnt/etc/mdadm.conf
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/etc/mdadm.conf
+			clear
+		fi
+	fi
+else
+	# crypttab
+	if [[ "$home" = 'yes' && "$encrypt_home" = 'yes' ]]; then
+		local home_uuid=$(lsblk -dno UUID "$dest_disk""$home_num")
+		printf '%s\n' "home UUID=${home_uuid} none luks,timeout=60s" >> /mnt/etc/crypttab
+		if [[ "$edit_conf" = 'yes' ]]; then
+			"$EDITOR" /mnt/etc/crypttab
+			clear
+		fi
 	fi
 fi
 
@@ -531,7 +549,7 @@ message 'Installing bootloader..'
 if [[ "$uefi" = 'yes' ]]; then
 	# UEFI
 	if [[ "$bootloader" = 'grub' ]]; then
-		## install grub
+		## install grub package
 		pacman_install dosfstools efibootmgr grub
 
 		## configure grub
@@ -544,12 +562,13 @@ if [[ "$uefi" = 'yes' ]]; then
 			clear
 		fi
 
-		## write to MBR
+		## run grub-mkconfig and grub-install
 		printf '%s\n' 'grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
 --target=x86_64-efi --efi-directory=/boot --bootloader-id=arch_grub --recheck' | arch-chroot /mnt
 	else
-		## install gummiboot
+		## install gummiboot package
 		pacman_install gummiboot
+		## run gummiboot install
 		arch-chroot /mnt gummiboot install
 
 		## configure gummiboot
@@ -575,10 +594,10 @@ EOF
 else
 	# BIOS
 	if [[ "$bootloader" = 'syslinux' ]]; then
-		## install syslinux
+		## install syslinux package
 		pacman_install gptfdisk syslinux
 
-		## write to MBR
+		## run syslinux-install_update
 		arch-chroot /mnt syslinux-install_update -i -a -m
 
 		## configure syslinux
@@ -606,7 +625,7 @@ EOF
 			clear
 		fi
 	else
-		## install grub
+		## install grub package
 		pacman_install grub
 
 		## configure grub
@@ -619,7 +638,7 @@ EOF
 			clear
 		fi
 
-		## write to MBR
+		## run grub-mkconfig and grub-install
 		printf '%s\n' "grub-mkconfig -o /boot/grub/grub.cfg; grub-install \
 --target=i386-pc --recheck ${dest_disk}" | arch-chroot /mnt
 	fi
@@ -762,7 +781,8 @@ if [[ "$unmount" = 'yes' ]]; then
 	message 'Unmounting filesystems..'
 	umount -R /mnt
 	## close encrypted volume
-	[[ "$encrypt_home" = 'yes' ]] && cryptsetup close home
+	[[ "$manual_part" = 'no' && "$home" = 'yes' && "$encrypt_home" = 'yes' ]] && \
+cryptsetup close home
 else
 	message 'Please unmount the targeted filesystems before rebooting.'
 fi
