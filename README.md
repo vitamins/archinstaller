@@ -1,6 +1,6 @@
 # archinstaller
 Automated installation script for arch linux written in bash.
-It works similar to preseeding of the debian installer d-i.
+It works similar to preseeding the debian installer d-i.
 
 ## Prerequisites
 - You are booted into an arch linux environment like archiso
@@ -27,7 +27,6 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 
 ## Usage
 - Edit the configuration file ari.conf: `nano ari.conf`
-- Check if dest_disk refers to the correct drive with `lsblk`
 - Run the script: `./archinstaller`
 
 ## Features
@@ -57,10 +56,10 @@ The partition sizes are set via variables "swap_size", "root_size", and "home_si
 - For BIOS booting and GRUB, a BIOS boot partition is created.
 - For UEFI booting a EFI System partition (ESP) with FAT32 filesystem is created, and mounted at /boot.
 
-The order of the partitions is from first to last ESP/BIOSboot, boot, swap, root, home.
+The order of the partitions is from first to last ESP/BIOS boot, boot, swap, root, home.
 
 #### Examples
-A list of possible partition layouts that can be created by archinstaller. For simplification ESP, BIOSboot and boot partition have been left out of the examples.
+A list of possible partition layouts that can be created by archinstaller. For simplification ESP, BIOS boot and boot partition have been left out of the examples.
 
 <pre>
 0. example:
@@ -154,7 +153,7 @@ Then the following assumptions are made by the script:
 - The root partition is mounted to /mnt.
 - If using UEFI, the ESP is mounted to /mnt/boot.
 - Any other separate partition like /usr or /var is mounted below the /mnt/ directory.
-- For the syslinux and gummiboot bootloaders, the kernel commandline is configured using the variable "cmdline".
+- The kernel commandline is configured using the variable "cmdline".
 
 When using BIOS booting and GRUB, the bootloader is installed to the MBR of "dest_disk", that means in this special case you also need to configure "dest_disk".
 
@@ -167,9 +166,10 @@ The mirror used for downloading packages can be configured with variable "mirror
 - To use the mirrorlist from the install host, set mirror to 'keep'.
 - This setting overwrites the mirrorlist on the host and on the installed system.
 
-### fstab, crypttab and mkinitcpio.conf
-The fstab and crypttab files should always be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf. After mkinitcpio.conf has been edited, the initramfs is regenerated. If you want to skip this step, set the configuration option edit_conf='no'.
-You can also configure the HOOKS line in mkinitcpio.conf using the "hooks" variable.
+### edit_conf
+Important configuration files should be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf. If you want to skip this step, set the configuration option edit_conf='no'.
+The following files are opened in the editor, when necessary:
+/etc/mdadm.conf, /etc/crypttab, /etc/mkinitcpio.conf, /etc/default/grub, /boot/loader/entries.arch.conf, /boot/syslinux/syslinux.cfg
 
 ### Language
 The language setting in "locale" is not verified by the script, but english (en_US) is generated as fallback setting.
@@ -180,7 +180,7 @@ example:
 `k_modules=( 'dm_mod' kvm coretemp )`
 All needed modules are automatically loaded by udev, so you will rarely need to add something here. Only add modules that you know are missing.
 
-### nectl
+### netctl
 Configure netctl profiles of your choice by setting network='netctl'. For example, you can use this option to configure static ip addresses or wireless connections. The netctl profile has to be copied from /etc/netctl/examples to the working directory of the script and edited to reflect your setup. It is necessary to set netctl_profile='filename' to the profile's name in ari.conf, so the script can find it. The network interface names are set to eth0 and wlan0 by the script.
 
 ### Additional Packages
