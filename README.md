@@ -10,7 +10,7 @@ It works similar to preseeding the debian installer d-i.
 
 ### packages
 The required utilities can be installed with the following packages:
-- arch-install-scripts version 12-1 (30 Nov 2013) or later
+- arch-install-scripts
 - gptfdisk
 - For UEFI support: dosfstools
 - For btrfs filesystems: btrfs-progs
@@ -26,7 +26,7 @@ All utilities are included on archiso, which can be downloaded at https://www.ar
 - download the tarball: `curl -L https://github.com/vitamins/archinstaller/tarball/master | tar xz`
 
 ## Usage
-- Edit the configuration file ari.conf: `nano ari.conf`
+- Edit the configuration file: `nano ari.conf`
 - Run the script: `./archinstaller`
 
 ## Features
@@ -166,7 +166,7 @@ The mirror used for downloading packages can be configured with variable "mirror
 - To use the mirrorlist from the install host, set mirror to 'keep'.
 - This setting overwrites the mirrorlist on the host and on the installed system.
 
-### edit_conf
+### configuration files
 Important configuration files should be checked after they have been generated. This is done by opening them in the editor, which is 'nano' by default. The editor can be changed with the "EDITOR" environment variable or in ari.conf. If you want to skip this step, set the configuration option edit_conf='no'.
 The following files are opened in the editor, when necessary:
 /etc/mdadm.conf, /etc/crypttab, /etc/mkinitcpio.conf, /etc/default/grub, /boot/loader/entries.arch.conf, /boot/syslinux/syslinux.cfg
@@ -194,4 +194,4 @@ If left empty, you will be prompted for the passwords during installation.
 When using encryption, think about a strong passphrase before starting the installation.
 
 ### Encryption
-To encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like cipher, hash algorithm and key size can be configured in ari.conf. Run `cryptsetup benchmark` for a list of available options and their performance.
+To encrypt the home partition with LUKS and dm-crypt set "encrypt_home" to 'yes'. Details like the cipher used can be configured in ari.conf with the variable "cryptsetup_options". Run `cryptsetup benchmark` for a list of available options and their performance.
