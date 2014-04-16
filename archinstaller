@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 13.04.2014
-# version	: 0.7.8.2
+# date		: 16.04.2014
+# version	: 0.7.8.3
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.2'
+declare -r VERSION='0.7.8.3'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -63,7 +63,7 @@ fi
 [[ "$unmount" = 'yes' || "$unmount" = 'no' ]] || config_fail 'unmount'
 # manual_part
 if [[ "$manual_part" = 'yes' ]]; then
-	findmnt -nfo TARGET /mnt > /dev/null || fail 'no mounted filesystem found at target /mnt'
+	mountpoint -q /mnt || fail 'no mounted filesystem found at target /mnt'
 	[[ -z "$cmdline" ]] && config_fail 'cmdline'
 	if [[ "$bootloader" = 'grub' && "$uefi" = 'no' ]]; then
 		# dest_disk
@@ -78,8 +78,7 @@ else
 	## check if dest_disk is really a disk
 	[[ $(lsblk -dno TYPE "$dest_disk") = 'disk' ]] || config_fail 'dest_disk'
 	# check /mnt for availability
-	findmnt -nfo TARGET /mnt > /dev/null && \
-fail 'working directory /mnt is blocked by mounted filesystem'
+	mountpoint -q /mnt && fail 'working directory /mnt is blocked by mounted filesystem'
 	# check dest_disk for mounted filesystems
 	mount | grep "$dest_disk" > /dev/null && \
 fail 'found mounted filesystem on destination disk'
