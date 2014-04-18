@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 16.04.2014
-# version	: 0.7.8.3
+# date		: 18.04.2014
+# version	: 0.7.8.4
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.3'
+declare -r VERSION='0.7.8.4'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -113,7 +113,7 @@ fail 'found mounted filesystem on destination disk'
 	else
 		[[ "$home" = 'no' ]] || config_fail 'home'
 	fi
-	# fstpye
+	# fstype
 	## check if mkfs utilities are installed
 	## set options for overwriting existing filesystems
 	case "$fstype" in
@@ -123,6 +123,9 @@ fail 'found mounted filesystem on destination disk'
 		ext2|ext3|ext4)
 			type mkfs.ext4 > /dev/null || fail 'missing package: e2fsprogs'
 			mkfs_options="${fstype} -q";;
+		f2fs)	type mkfs.f2fs > /dev/null || fail 'missing package: f2fs-tools'
+			packages+=( 'f2fs-tools' )
+			mkfs_options="$fstype";;
 		jfs)	type mkfs.jfs > /dev/null || fail 'missing package: jfsutils'
 			mkfs_options="${fstype} -q";;
 		nilfs2)	type mkfs.nilfs2 > /dev/null || fail 'missing package: nilfs-utils'
