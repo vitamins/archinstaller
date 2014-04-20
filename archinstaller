@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 18.04.2014
-# version	: 0.7.8.4
+# date		: 20.04.2014
+# version	: 0.7.8.5
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.4'
+declare -r VERSION='0.7.8.5'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -604,8 +604,8 @@ else
 
 		## configure syslinux
 		if [[ "$manual_part" = 'no' ]]; then
-			local root_uuid=$(lsblk -dno UUID "$dest_disk""$root_num")
-			local cmdline="root=UUID=${root_uuid} rw"
+			local root_partuuid=$(lsblk -dno PARTUUID "$dest_disk""$root_num")
+			local cmdline="root=PARTUUID=${root_partuuid} rw"
 		fi
 		cat << EOF > /mnt/boot/syslinux/syslinux.cfg
 PROMPT 1
