@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 20.04.2014
-# version	: 0.7.8.5
+# date		: 23.04.2014
+# version	: 0.7.8.6
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.5'
+declare -r VERSION='0.7.8.6'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -347,13 +347,13 @@ if [[ "$uefi" = 'yes' ]]; then
 	mkfs.vfat -F32 "$dest_disk"1
 	mkdir -p /mnt/boot
 	message 'Mounting ESP..'
-	mount -t vfat "$dest_disk"1 /mnt/boot
+	mount -o nodev,nosuid,noexec -t vfat "$dest_disk"1 /mnt/boot
 else
 	message 'Formatting /boot..'
 	mkfs.ext2 -q "$dest_disk""$boot_num"
 	mkdir -p /mnt/boot
 	message 'Mounting /boot..'
-	mount -t ext2 "$dest_disk""$boot_num" /mnt/boot
+	mount -o nodev,nosuid,noexec -t ext2 "$dest_disk""$boot_num" /mnt/boot
 fi
 
 ## swap
@@ -381,13 +381,13 @@ if [[ "$home" = 'yes' ]]; then
 		mkfs.${mkfs_options} /dev/mapper/home
 		mkdir /mnt/home
 		message 'Mounting /home..'
-		mount -t "$fstype" /dev/mapper/home /mnt/home
+		mount -o nodev,nosuid -t "$fstype" /dev/mapper/home /mnt/home
 	else
 		message 'Formatting /home..'
 		mkfs.${mkfs_options} "$dest_disk""$home_num"
 		mkdir /mnt/home
 		message 'Mounting /home..'
-		mount -t "$fstype" "$dest_disk""$home_num" /mnt/home
+		mount -o nodev,nosuid -t "$fstype" "$dest_disk""$home_num" /mnt/home
 	fi
 fi
 }
