@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 23.04.2014
-# version	: 0.7.8.6
+# date		: 01.05.2014
+# version	: 0.7.8.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.6'
+declare -r VERSION='0.7.8.7'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -522,7 +522,11 @@ if [[ "$set_password" = 'yes' ]]; then
 		message 'Setting password for root user..'
 		## loop if entered passwords do not match
 		while :; do
-			passwd -R /mnt root && break
+			if passwd -R /mnt root; then
+				break
+			else
+				(( "$?" == 10 )) || break
+			fi
 		done
 	else
 		printf '%s\n' "root:${root_password}" | chpasswd -R /mnt
@@ -537,10 +541,14 @@ if [[ "$add_user" = 'yes' ]]; then
 		if [[ "$ask_user_password" = 'yes' ]]; then
 			message "Setting password for ${username}.."
 			while :; do
-				passwd -R /mnt "$username" && break
+				if passwd -R /mnt "$username"; then
+					break
+				else
+					(( "$?" == 10 )) || break
+				fi
 			done
 		else
-			printf '%s\n' "root:${user_password}" | chpasswd -R /mnt
+			printf '%s\n' "${username}:${user_password}" | chpasswd -R /mnt
 		fi
 	fi
 fi
