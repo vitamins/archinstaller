@@ -6,13 +6,13 @@
 # authors	: Dennis Anfossi,
 #		  Lukas B.
 # contact	: https://github.com/vitamins/archinstaller
-# date		: 01.05.2014
+# date		: 10.05.2014
 # version	: 0.7.8.7
 # license	: GPLv2
 # usage		: Edit ari.conf and run ./archinstaller
 ##############################################################
 
-declare -r VERSION='0.7.8.7'
+declare -r VERSION='0.7.8.8'
 
 # colors
 unset ALL_OFF GREEN RED
@@ -80,8 +80,8 @@ else
 	# check /mnt for availability
 	mountpoint -q /mnt && fail 'working directory /mnt is blocked by mounted filesystem'
 	# check dest_disk for mounted filesystems
-	mount | grep "$dest_disk" > /dev/null && \
-fail 'found mounted filesystem on destination disk'
+	mount | grep "$dest_disk" > /dev/null &&
+	 fail 'found mounted filesystem on destination disk'
 	# swap
 	if [[ "$swap" = 'yes' ]]; then
 		## swap_size
@@ -143,8 +143,8 @@ fi
 if [[ "$uefi" = 'yes' ]]; then
 	## check if install host is booted in uefi mode
 	if [[ -z "$(mount -t efivarfs)" ]]; then
-		mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null \
-|| config_fail 'uefi'
+		mount -t efivarfs efivarfs /sys/firmware/efi/efivars > /dev/null ||
+		 config_fail 'uefi'
 	fi
 	efivar -l > /dev/null || config_fail 'uefi'
 	## bootloader
@@ -741,16 +741,16 @@ check_conf
 # check internet connection
 printf "$RED"
 printf '%s\n' '| Checking internet connection..'
-curl -f --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org || \
-fail 'please check the internet connection'
+curl -f --retry 3 -m 10 -o /dev/null -s http://mirrors.kernel.org ||
+ fail 'please check the internet connection'
 printf "$GREEN"
 printf '%s\n' '| OK.'
 printf "$ALL_OFF"
 
 # check mirror status
 if [[ "$mirror" != 'keep' ]]; then
-	curl -f --retry 3 -m 10 -o /dev/null -s "$mirror"lastsync || \
-fail 'please check the mirror status and configuration'
+	curl -f --retry 3 -m 10 -o /dev/null -s "$mirror"lastsync ||
+ fail 'please check the mirror status and configuration'
 fi
 
 # paranoid shell
@@ -791,8 +791,8 @@ if [[ "$unmount" = 'yes' ]]; then
 	message 'Unmounting filesystems..'
 	umount -R /mnt
 	## close encrypted volume
-	[[ "$manual_part" = 'no' && "$home" = 'yes' && "$encrypt_home" = 'yes' ]] && \
-cryptsetup close home
+	[[ "$manual_part" = 'no' && "$home" = 'yes' && "$encrypt_home" = 'yes' ]] &&
+	 cryptsetup close home
 else
 	message 'Please unmount the targeted filesystems before rebooting.'
 fi
